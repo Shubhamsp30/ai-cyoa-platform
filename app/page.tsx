@@ -84,21 +84,23 @@ export default function Home() {
           </div>
         </div>
       </section>
-      bottom: '20px',
-      width: '100%',
-      textAlign: 'center',
-      zIndex: 10,
-      fontSize: '0.9rem',
-      color: 'rgba(255,255,255,0.4)',
-      display: 'flex',
-      justifyContent: 'center',
-      gap: '2rem'
-  }
-}>
-      <a href="/game/rules" className={styles.footerLink}>Rules & Guide</a>
-      <a href="/legal/terms" className={styles.footerLink}>Terms & Conditions</a>
-      <span>© 2026 AI Adventures</span>
-    </footer >
-    </main >
+
+      <footer style={{
+        position: 'absolute',
+        bottom: '20px',
+        width: '100%',
+        textAlign: 'center',
+        zIndex: 10,
+        fontSize: '0.9rem',
+        color: 'rgba(255,255,255,0.4)',
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '2rem'
+      }}>
+        <a href="/game/rules" className={styles.footerLink}>Rules & Guide</a>
+        <a href="/legal/terms" className={styles.footerLink}>Terms & Conditions</a>
+        <span>© 2026 AI Adventures</span>
+      </footer>
+    </main>
   )
 }

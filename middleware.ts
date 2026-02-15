@@ -57,19 +57,19 @@ export async function middleware(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     // Protected routes pattern (including root)
-    // We want to protect everything EXCEPT auth routes and static assets
-    const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
-        request.nextUrl.pathname.startsWith('/register') ||
-        request.nextUrl.pathname.startsWith('/auth')
+    // We want to protect everything EXCEPT auth routes, static assets, and specific public pages
+    const publicPaths = ['/login', '/register', '/auth', '/legal', '/game/rules']
+    const isPublicPath = request.nextUrl.pathname === '/' ||
+        publicPaths.some(path => request.nextUrl.pathname.startsWith(path))
 
-    // If user is not signed in and the current path is not an auth route, redirect the user to /login
-    if (!user && !isAuthRoute) {
+    // If user is not signed in and the current path is not public, redirect the user to /login
+    if (!user && !isPublicPath) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // If user is signed in and the current path is /login or /register, redirect the user to /
-    if (user && isAuthRoute) {
-        return NextResponse.redirect(new URL('/', request.url))
+    // If user is signed in and access login/register, redirect to /game/stories
+    if (user && (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register'))) {
+        return NextResponse.redirect(new URL('/game/stories', request.url))
     }
 
     return response
