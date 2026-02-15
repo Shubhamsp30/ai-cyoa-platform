@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button'
 import styles from './stories.module.css'
 import { useLanguage } from '@/contexts/LanguageContext'
 import LanguageSelector from '@/components/ui/LanguageSelector'
+import { soundManager } from '@/lib/audio/SoundManager'
 
 export default function StoriesPage() {
     const router = useRouter()
@@ -33,7 +34,12 @@ export default function StoriesPage() {
         loadStories()
     }, [supabase])
 
+
+
+    // ...
+
     const handleSelectStory = (storyId: string) => {
+        soundManager.playTone('click') // Audio Feedback
         console.log('Selected Story:', storyId)
         localStorage.setItem('selected_story_id', storyId)
         localStorage.removeItem(`story_progress_${storyId}`)

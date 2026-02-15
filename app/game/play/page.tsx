@@ -14,6 +14,7 @@ import { soundManager } from '@/lib/audio/SoundManager'
 import { Language, useLanguage } from '@/contexts/LanguageContext'
 import VirtualKeyboard from '@/components/VirtualKeyboard';
 import LanguageSelector from '@/components/ui/LanguageSelector'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function PlayPage() {
     const router = useRouter()
@@ -74,11 +75,8 @@ export default function PlayPage() {
             // Use a short delay to ensure description starts reading after the sound
             soundManager.playTone('scene_transition')
 
-            if (!currentScene.is_ending) {
-                setTimeout(() => {
-                    soundManager.speak(t(currentScene, 'content'), language)
-                }, 800) // Delayed slightly more to let the transition sound play
-            }
+            // Auto-speech removed as per user request
+            // User must click the speak button manually
 
             // Ensure score is 0 if we are at the very beginning
             if (story && currentScene.id === story.starting_scene_id) {
@@ -90,6 +88,74 @@ export default function PlayPage() {
     }, [currentScene, story, t, language])
 
     // ... (rest of code)
+
+    // RESTORED FUNCTIONS
+    const checkAchievement = async (conditionCode: string) => {
+        if (!story) return
+
+        // Use local storage name or temp name if not set
+        const currentName = playerName || localStorage.getItem('player_name') || ''
+
+        try {
+            const res = await fetch('/api/achievements', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    storyId: story.id,
+                    playerName: currentName,
+                    userId,
+                    conditionCode
+                })
+            })
+            const data = await res.json()
+
+            if (data.newUnlock && data.achievement) {
+                setUnlockedAchievement(data.achievement)
+                soundManager.playTone('success')
+            }
+        } catch (e) {
+            console.error('Achievement check failed', e)
+        }
+    }
+
+    const loadGameState = async () => {
+        // Get selected story from localStorage
+        const storyId = localStorage.getItem('selected_story_id')
+
+        if (!storyId) {
+            router.push('/game/stories')
+            return
+        }
+
+        const storyData = await getStoryById(storyId)
+        if (!storyData) {
+            router.push('/game/stories')
+            return
+        }
+        setStory(storyData)
+
+        const savedSceneId = localStorage.getItem(`story_progress_${storyId}`)
+        const savedScore = localStorage.getItem(`story_score_${storyId}`)
+
+        if (savedScore) {
+            setScore(parseInt(savedScore))
+        }
+
+        const sceneId = savedSceneId || storyData.starting_scene_id
+        const sceneData = await getSceneById(sceneId)
+        if (sceneData) {
+            setCurrentScene(sceneData)
+        }
+
+        setLoading(false)
+    }
+
+    const saveProgress = (sceneId: string, newScore: number) => {
+        if (story) {
+            localStorage.setItem(`story_progress_${story.id}`, sceneId)
+            localStorage.setItem(`story_score_${story.id}`, newScore.toString())
+        }
+    }
 
     const handleDecision = async () => {
         if (!userInput.trim() || !currentScene || !story) return
@@ -315,169 +381,178 @@ export default function PlayPage() {
             </div>
 
             {/* Split Screen Content */}
-            <div className={styles.gameContent}>
-                <div className={styles.imagePanel}>
-                    {currentScene.image_url && (
-                        <img
-                            src={getImageUrl(currentScene.image_url) || ''}
-                            alt={currentScene.title}
-                            className={styles.sceneImage}
-                        />
-                    )}
-                </div>
-
-                <div className={styles.storyPanel}>
-                    <h1 className={styles.sceneTitle}>{t(currentScene, 'title')}</h1>
-
-                    <div className={styles.scenarioSection}>
-                        <h2 className={styles.sectionLabel}>
-                            {labels.situation}
-                            <button
-                                onClick={() => soundManager.speak(t(currentScene, 'content'), language)}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    color: 'rgba(255,255,255,0.5)',
-                                    cursor: 'pointer',
-                                    marginLeft: '10px',
-                                    fontSize: '1.1rem'
-                                }}
-                                title="Replay Narration"
-                            >
-                                🗣️
-                            </button>
-                        </h2>
-                        <p className={styles.mainText}>
-                            <AnimatedText text={t(currentScene, 'content')} delay={50} />
-                        </p>
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={currentScene.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.5 }}
+                    className={styles.gameContent}
+                >
+                    <div className={styles.imagePanel}>
+                        {currentScene.image_url && (
+                            <img
+                                src={getImageUrl(currentScene.image_url) || ''}
+                                alt={currentScene.title}
+                                className={styles.sceneImage}
+                            />
+                        )}
                     </div>
 
-                    {!currentScene.is_ending ? (
-                        <>
-                            <div className={styles.questionSection}>
-                                <h2 className={styles.questionLabel}>{labels.challenge}</h2>
-                                <div className={styles.callout}>
-                                    <p>
-                                        <AnimatedText text={t(currentScene, 'overview')} delay={60} />
-                                    </p>
-                                </div>
-                            </div>
+                    <div className={styles.storyPanel}>
+                        <h1 className={styles.sceneTitle}>{t(currentScene, 'title')}</h1>
 
-                            {/* Decision Input */}
-                            <div className={styles.inputSection}>
-                                <p className={styles.hint}>
-                                    {t(currentScene, 'valid_actions_hint') ?
-                                        `${labels.placeholder} (Hint: ${t(currentScene, 'valid_actions_hint')})` :
-                                        labels.placeholder
-                                    }
+                        <div className={styles.scenarioSection}>
+                            <h2 className={styles.sectionLabel}>
+                                {labels.situation}
+                                <button
+                                    onClick={() => soundManager.speak(t(currentScene, 'content'), language)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'rgba(255,255,255,0.5)',
+                                        cursor: 'pointer',
+                                        marginLeft: '10px',
+                                        fontSize: '1.1rem'
+                                    }}
+                                    title="Replay Narration"
+                                >
+                                    🗣️
+                                </button>
+                            </h2>
+                            <p className={styles.mainText}>
+                                <AnimatedText text={t(currentScene, 'content')} delay={50} />
+                            </p>
+                        </div>
+
+                        {!currentScene.is_ending ? (
+                            <>
+                                <div className={styles.questionSection}>
+                                    <h2 className={styles.questionLabel}>{labels.challenge}</h2>
+                                    <div className={styles.callout}>
+                                        <p>
+                                            <AnimatedText text={t(currentScene, 'overview')} delay={60} />
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Decision Input */}
+                                <div className={styles.inputSection}>
+                                    <p className={styles.hint}>
+                                        {t(currentScene, 'valid_actions_hint') ?
+                                            `${labels.placeholder} (Hint: ${t(currentScene, 'valid_actions_hint')})` :
+                                            labels.placeholder
+                                        }
+                                    </p>
+
+                                    <div className={styles.inputWrapper}>
+                                        <input
+                                            type="text"
+                                            value={userInput}
+                                            onChange={(e) => setUserInput(e.target.value)}
+                                            placeholder={t(currentScene, 'valid_actions_hint') ?
+                                                `${labels.placeholder} (Hint: ${t(currentScene, 'valid_actions_hint')})` :
+                                                labels.placeholder}
+                                            className={`${styles.decisionInput} ${animationClass}`}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleDecision()}
+                                            disabled={analyzing}
+                                        />
+
+                                        {(language === 'hi' || language === 'mr') && (
+                                            <button
+                                                className={`${styles.iconButton} ${showKeyboard ? styles.active : ''}`}
+                                                onClick={() => setShowKeyboard(!showKeyboard)}
+                                                title="Virtual Keyboard"
+                                            >
+                                                ⌨️
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {showKeyboard && (language === 'hi' || language === 'mr') && (
+                                        <VirtualKeyboard
+                                            language={language as 'hi' | 'mr'}
+                                            onKeyPress={handleVirtualKeyPress}
+                                            onClose={() => setShowKeyboard(false)}
+                                        />
+                                    )}
+
+                                    {feedback && (
+                                        <div className={`${styles.feedback} ${styles[feedback.type]}`}>
+                                            {feedback.message}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        className={styles.submitButton}
+                                        onClick={handleDecision}
+                                        disabled={!userInput.trim() || analyzing}
+                                    >
+                                        {analyzing ? labels.analyzing : labels.submit}
+                                    </button>
+
+                                    <p className={styles.quickAction}>💡 {labels.quick_action}</p>
+                                </div>
+                            </>
+                        ) : (
+                            <div className={styles.endingCard}>
+                                <h2>🏆 Journey Complete</h2>
+                                <p className={styles.endingQuote}>
+                                    Your legend has been written!
                                 </p>
 
-                                <div className={styles.inputWrapper}>
-                                    <input
-                                        type="text"
-                                        value={userInput}
-                                        onChange={(e) => setUserInput(e.target.value)}
-                                        placeholder={t(currentScene, 'valid_actions_hint') ?
-                                            `${labels.placeholder} (Hint: ${t(currentScene, 'valid_actions_hint')})` :
-                                            labels.placeholder}
-                                        className={`${styles.decisionInput} ${animationClass}`}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleDecision()}
-                                        disabled={analyzing}
-                                    />
+                                <div style={{ margin: '2rem 0', padding: '1.5rem', background: 'rgba(64, 224, 208, 0.1)', borderRadius: '12px', border: '1px solid rgba(64, 224, 208, 0.3)' }}>
+                                    <h3 style={{ color: '#40e0d0', marginBottom: '0.5rem' }}>Final Score: {score}</h3>
+                                    <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
+                                        Base Score: {score - (mistakes === 0 ? 50 : 0)}
+                                        {mistakes === 0 ? <span style={{ color: '#fbbf24' }}> + 50 PERFECT RUN BONUS!</span> : <span> + 0 Bonus (Mistakes Made: {mistakes})</span>}
+                                    </div>
+                                    <p style={{ fontSize: '0.9rem', marginBottom: '1rem', color: 'rgba(255,255,255,0.7)' }}>Enter your name to join the Hall of Legends</p>
 
-                                    {(language === 'hi' || language === 'mr') && (
-                                        <button
-                                            className={`${styles.iconButton} ${showKeyboard ? styles.active : ''}`}
-                                            onClick={() => setShowKeyboard(!showKeyboard)}
-                                            title="Virtual Keyboard"
-                                        >
-                                            ⌨️
-                                        </button>
+                                    {!scoreSubmitted ? (
+                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                            <input
+                                                type="text"
+                                                placeholder="Warrior Name"
+                                                value={playerName}
+                                                onChange={(e) => setPlayerName(e.target.value)}
+                                                style={{
+                                                    padding: '0.8rem',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid rgba(255,255,255,0.2)',
+                                                    background: 'rgba(0,0,0,0.5)',
+                                                    color: '#fff',
+                                                    outline: 'none'
+                                                }}
+                                            />
+                                            <Button onClick={submitScore} disabled={!playerName.trim()}>
+                                                Submit
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: '#86efac', fontWeight: 'bold' }}>
+                                            ✅ Score Submitted!
+                                        </div>
                                     )}
                                 </div>
 
-                                {showKeyboard && (language === 'hi' || language === 'mr') && (
-                                    <VirtualKeyboard
-                                        language={language as 'hi' | 'mr'}
-                                        onKeyPress={handleVirtualKeyPress}
-                                        onClose={() => setShowKeyboard(false)}
-                                    />
-                                )}
-
-                                {feedback && (
-                                    <div className={`${styles.feedback} ${styles[feedback.type]}`}>
-                                        {feedback.message}
-                                    </div>
-                                )}
-
-                                <button
-                                    className={styles.submitButton}
-                                    onClick={handleDecision}
-                                    disabled={!userInput.trim() || analyzing}
-                                >
-                                    {analyzing ? labels.analyzing : labels.submit}
-                                </button>
-
-                                <p className={styles.quickAction}>💡 {labels.quick_action}</p>
-                            </div>
-                        </>
-                    ) : (
-                        <div className={styles.endingCard}>
-                            <h2>🏆 Journey Complete</h2>
-                            <p className={styles.endingQuote}>
-                                Your legend has been written!
-                            </p>
-
-                            <div style={{ margin: '2rem 0', padding: '1.5rem', background: 'rgba(64, 224, 208, 0.1)', borderRadius: '12px', border: '1px solid rgba(64, 224, 208, 0.3)' }}>
-                                <h3 style={{ color: '#40e0d0', marginBottom: '0.5rem' }}>Final Score: {score}</h3>
-                                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
-                                    Base Score: {score - (mistakes === 0 ? 50 : 0)}
-                                    {mistakes === 0 ? <span style={{ color: '#fbbf24' }}> + 50 PERFECT RUN BONUS!</span> : <span> + 0 Bonus (Mistakes Made: {mistakes})</span>}
+                                <div className={styles.endingButtons}>
+                                    <Button size="lg" onClick={() => router.push('/game/leaderboard')}>
+                                        🏆 Leaderboard
+                                    </Button>
+                                    <Button size="lg" variant="secondary" onClick={() => router.push('/game/profile')}>
+                                        👤 Achievements
+                                    </Button>
+                                    <Button size="lg" variant="outline" onClick={() => router.push('/game/stories')}>
+                                        🎭 New Story
+                                    </Button>
                                 </div>
-                                <p style={{ fontSize: '0.9rem', marginBottom: '1rem', color: 'rgba(255,255,255,0.7)' }}>Enter your name to join the Hall of Legends</p>
-
-                                {!scoreSubmitted ? (
-                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                        <input
-                                            type="text"
-                                            placeholder="Warrior Name"
-                                            value={playerName}
-                                            onChange={(e) => setPlayerName(e.target.value)}
-                                            style={{
-                                                padding: '0.8rem',
-                                                borderRadius: '8px',
-                                                border: '1px solid rgba(255,255,255,0.2)',
-                                                background: 'rgba(0,0,0,0.5)',
-                                                color: '#fff',
-                                                outline: 'none'
-                                            }}
-                                        />
-                                        <Button onClick={submitScore} disabled={!playerName.trim()}>
-                                            Submit
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <div style={{ color: '#86efac', fontWeight: 'bold' }}>
-                                        ✅ Score Submitted!
-                                    </div>
-                                )}
                             </div>
-
-                            <div className={styles.endingButtons}>
-                                <Button size="lg" onClick={() => router.push('/game/leaderboard')}>
-                                    🏆 Leaderboard
-                                </Button>
-                                <Button size="lg" variant="secondary" onClick={() => router.push('/game/profile')}>
-                                    👤 Achievements
-                                </Button>
-                                <Button size="lg" variant="outline" onClick={() => router.push('/game/stories')}>
-                                    🎭 New Story
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
+                        )}
+                    </div>
+                </motion.div>
+            </AnimatePresence>
         </main>
     )
 }
