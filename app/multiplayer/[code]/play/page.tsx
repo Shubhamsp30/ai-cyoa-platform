@@ -279,7 +279,7 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
                                         alignItems: 'center',
                                         border: p.voters.includes(currentUser?.id) ? '1px solid var(--neon-green)' : '1px solid transparent'
                                     }}>
-                                        <span>"{p.content}"</span>
+                                        <span>&quot;{p.content}&quot;</span>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                             <span>{p.vote_count} 🗳️</span>
                                             <Button size="sm" variant="secondary" onClick={() => handleVote(p.id)}>
