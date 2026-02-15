@@ -117,7 +117,7 @@ class SoundManager {
         return this.audioContext
     }
 
-    playTone(type: 'success' | 'error' | 'click' | 'intro') {
+    playTone(type: 'success' | 'error' | 'click' | 'intro' | 'scene_transition') {
         if (this.isMuted) return
         try {
             const ctx = this.getAudioContext()
@@ -192,6 +192,20 @@ class SoundManager {
 
                 osc.start(now)
                 osc.stop(now + 1.0)
+            }
+            else if (type === 'scene_transition') {
+                // White noise burst / "Whoosh"
+                // We need a buffer source for noise typically, but let's use a quick slide
+                osc.type = 'triangle'
+                osc.frequency.setValueAtTime(100, now)
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.3)
+
+                gain.gain.setValueAtTime(0, now)
+                gain.gain.linearRampToValueAtTime(0.05 * this.volume, now + 0.15)
+                gain.gain.linearRampToValueAtTime(0, now + 0.3)
+
+                osc.start(now)
+                osc.stop(now + 0.3)
             }
 
         } catch (e) {

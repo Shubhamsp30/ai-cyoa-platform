@@ -65,89 +65,31 @@ export default function PlayPage() {
         }
     }, [])
 
+    // Gameplay State
+    const [mistakes, setMistakes] = useState(0)
+
     useEffect(() => {
-        if (currentScene && !currentScene.is_ending) {
-            // Speak the scene content
-            setTimeout(() => {
-                soundManager.speak(t(currentScene, 'content'), language)
-            }, 500)
+        if (currentScene) {
+            // Play scene transition sound (except for first load if needed, but 'intro' sounds good)
+            // Use a short delay to ensure description starts reading after the sound
+            soundManager.playTone('scene_transition')
+
+            if (!currentScene.is_ending) {
+                setTimeout(() => {
+                    soundManager.speak(t(currentScene, 'content'), language)
+                }, 800) // Delayed slightly more to let the transition sound play
+            }
 
             // Ensure score is 0 if we are at the very beginning
             if (story && currentScene.id === story.starting_scene_id) {
                 setScore(0)
-                // Also clear storage to be safe
+                setMistakes(0)
                 localStorage.removeItem(`story_score_${story.id}`)
             }
         }
     }, [currentScene, story, t, language])
 
-    const checkAchievement = async (conditionCode: string) => {
-        if (!story) return
-
-        // Use local storage name or temp name if not set
-        const currentName = playerName || localStorage.getItem('player_name') || ''
-
-        try {
-            const res = await fetch('/api/achievements', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    storyId: story.id,
-                    playerName: currentName,
-                    userId,
-                    conditionCode
-                })
-            })
-            const data = await res.json()
-
-            if (data.newUnlock && data.achievement) {
-                setUnlockedAchievement(data.achievement)
-                soundManager.playSFX('sfx_success.mp3') // Reuse success sound or add new one
-            }
-        } catch (e) {
-            console.error('Achievement check failed', e)
-        }
-    }
-
-    const loadGameState = async () => {
-        // ... (existing load logic)
-        // Get selected story from localStorage
-        const storyId = localStorage.getItem('selected_story_id')
-
-        if (!storyId) {
-            router.push('/game/stories')
-            return
-        }
-
-        const storyData = await getStoryById(storyId)
-        if (!storyData) {
-            router.push('/game/stories')
-            return
-        }
-        setStory(storyData)
-
-        const savedSceneId = localStorage.getItem(`story_progress_${storyId}`)
-        const savedScore = localStorage.getItem(`story_score_${storyId}`)
-
-        if (savedScore) {
-            setScore(parseInt(savedScore))
-        }
-
-        const sceneId = savedSceneId || storyData.starting_scene_id
-        const sceneData = await getSceneById(sceneId)
-        if (sceneData) {
-            setCurrentScene(sceneData)
-        }
-
-        setLoading(false)
-    }
-
-    const saveProgress = (sceneId: string, newScore: number) => {
-        if (story) {
-            localStorage.setItem(`story_progress_${story.id}`, sceneId)
-            localStorage.setItem(`story_score_${story.id}`, newScore.toString())
-        }
-    }
+    // ... (rest of code)
 
     const handleDecision = async () => {
         if (!userInput.trim() || !currentScene || !story) return
@@ -188,43 +130,22 @@ export default function PlayPage() {
                     checkAchievement('STRATEGIC_MIND')
                 }
 
-                // Achievement Logic - Context Specific
-                if (currentScene.scene_number === 1) {
-                    checkAchievement('SCENE_1_COMPLETE')
-                }
+                // ... (Existing achievement checks) ...
 
-                // Scene 4: Duty over Family
-                if (currentScene.scene_number === 4 && (userInput.toLowerCase().includes('duty') || userInput.toLowerCase().includes('leave'))) {
-                    checkAchievement('SWARAJYA_FIRST')
-                }
+                // Scene Specific Achievements (Keep existing logic)
+                if (currentScene.scene_number === 1) checkAchievement('SCENE_1_COMPLETE')
+                if (currentScene.scene_number === 4 && (userInput.toLowerCase().includes('duty') || userInput.toLowerCase().includes('leave'))) checkAchievement('SWARAJYA_FIRST')
+                if (currentScene.scene_number === 6 && (userInput.toLowerCase().includes('ghorpad') || userInput.toLowerCase().includes('yashwanti'))) checkAchievement('CLIFF_CLIMBER')
+                if (currentScene.scene_number === 8) checkAchievement('UDAYBHAN_SLAYER')
 
-                // Scene 6: Cliff Climb
-                if (currentScene.scene_number === 6 && (userInput.toLowerCase().includes('ghorpad') || userInput.toLowerCase().includes('yashwanti'))) {
-                    checkAchievement('CLIFF_CLIMBER')
-                }
-
-                // Scene 8: Udaybhan Duel
-                if (currentScene.scene_number === 8) {
-                    checkAchievement('UDAYBHAN_SLAYER')
-                }
-
-                // Story 2: Bajiprabhu Achievements
                 if (story.title.includes('Baji')) {
-                    // Check for The Ultimate Volunteer (Entering Scene 7 implied)
-                    if (currentScene.scene_number === 6) {
-                        checkAchievement('BAJI_VOLUNTEER')
-                    }
-                    // Check for Iron Wall (Surviving to Scene 9)
-                    if (currentScene.scene_number === 8) {
-                        checkAchievement('BAJI_IRON_WALL')
-                    }
-                } // End Story 2 Logic
-
-                if (userInput.toLowerCase().includes('peace') || userInput.toLowerCase().includes('talk')) {
-                    checkAchievement('PEACEFUL_CHOICE')
-                } else if (userInput.toLowerCase().includes('attack') || userInput.toLowerCase().includes('fight')) {
-                    checkAchievement('WARRIOR_CHOICE')
+                    if (currentScene.scene_number === 6) checkAchievement('BAJI_VOLUNTEER')
+                    if (currentScene.scene_number === 8) checkAchievement('BAJI_IRON_WALL')
                 }
+
+                if (userInput.toLowerCase().includes('peace') || userInput.toLowerCase().includes('talk')) checkAchievement('PEACEFUL_CHOICE')
+                else if (userInput.toLowerCase().includes('attack') || userInput.toLowerCase().includes('fight')) checkAchievement('WARRIOR_CHOICE')
+
 
                 setTimeout(async () => {
                     if (currentScene.is_ending) {
@@ -232,6 +153,23 @@ export default function PlayPage() {
                             message: '🏆 You have completed this story! Thank you for playing!',
                             type: 'success'
                         })
+
+                        // Strict Bonus Calculation
+                        const perfectRun = mistakes === 0
+                        const bonusScore = perfectRun ? 50 : 0
+
+                        // Trigger Confetti
+                        import('canvas-confetti').then((confetti) => {
+                            confetti.default({
+                                particleCount: 150,
+                                spread: 70,
+                                origin: { y: 0.6 },
+                                colors: ['#40e0d0', '#ff0099', '#fbbf24']
+                            })
+                        })
+
+                        setScore(s => s + bonusScore)
+
                         // Game Completion Achievements
                         checkAchievement('SINHAGAD_CONQUEROR')
 
@@ -239,9 +177,9 @@ export default function PlayPage() {
                             checkAchievement('BAJI_VICTORY')
                         }
 
-                        // Check High Score Achievement
-                        if (newScore >= 1000) {
-                            checkAchievement('HIGH_SCORE_2000') // Logic needs update if code changes, but keeping ID for now
+                        // Check High Score Achievement (adjusted for new scoring if needed, usually 1000 is hard with 50 bonus, but achievable with streaks if implemented later)
+                        if (newScore + bonusScore >= 1000) {
+                            checkAchievement('HIGH_SCORE_2000')
                         }
                         return
                     }
@@ -256,9 +194,10 @@ export default function PlayPage() {
                     }
                 }, 2500)
             } else {
-                // ... (existing failure logic)
+                setMistakes(m => m + 1) // Increment mistakes
                 setConsecutiveCorrect(0) // Reset streak
-                // ... (existing failure logic)
+
+                // ... (existing feedback generation)
                 const politeMessages = [
                     "That's a bold choice, but it doesn't fit the path.",
                     "Think like a warrior. What would you do?",
@@ -297,7 +236,7 @@ export default function PlayPage() {
                     storyId: story.id,
                     playerName: playerName,
                     userId,
-                    score: score + 200,
+                    score: score,
                     achievedEnding: 'Victory'
                 })
             })
@@ -490,9 +429,10 @@ export default function PlayPage() {
                             </p>
 
                             <div style={{ margin: '2rem 0', padding: '1.5rem', background: 'rgba(64, 224, 208, 0.1)', borderRadius: '12px', border: '1px solid rgba(64, 224, 208, 0.3)' }}>
-                                <h3 style={{ color: '#40e0d0', marginBottom: '0.5rem' }}>Final Score: {score + 200}</h3>
+                                <h3 style={{ color: '#40e0d0', marginBottom: '0.5rem' }}>Final Score: {score}</h3>
                                 <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
-                                    Base Score: {score} + Victory Bonus: 200
+                                    Base Score: {score - (mistakes === 0 ? 50 : 0)}
+                                    {mistakes === 0 ? <span style={{ color: '#fbbf24' }}> + 50 PERFECT RUN BONUS!</span> : <span> + 0 Bonus (Mistakes Made: {mistakes})</span>}
                                 </div>
                                 <p style={{ fontSize: '0.9rem', marginBottom: '1rem', color: 'rgba(255,255,255,0.7)' }}>Enter your name to join the Hall of Legends</p>
 
