@@ -18,22 +18,23 @@ export default function StoriesPage() {
     const { t, labels } = useLanguage()
 
     useEffect(() => {
+        const checkUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            setUser(session?.user || null)
+        }
+
+        const loadStories = async () => {
+            const data = await getAllStories()
+            setStories(data)
+            setLoading(false)
+        }
+
         checkUser()
         loadStories()
-    }, [])
-
-    const checkUser = async () => {
-        const { data: { session } } = await supabase.auth.getSession()
-        setUser(session?.user || null)
-    }
-
-    const loadStories = async () => {
-        const data = await getAllStories()
-        setStories(data)
-        setLoading(false)
-    }
+    }, [supabase])
 
     const handleSelectStory = (storyId: string) => {
+        console.log('Selected Story:', storyId)
         localStorage.setItem('selected_story_id', storyId)
         localStorage.removeItem(`story_progress_${storyId}`)
         router.push('/game/play')
@@ -91,7 +92,18 @@ export default function StoriesPage() {
                 {/* Stories Grid */}
                 <div className={styles.storiesGrid}>
                     {stories.map((story) => (
-                        <div key={story.id} className={styles.storyCard}>
+                        <div
+                            key={story.id}
+                            className={styles.storyCard}
+                            onClick={() => handleSelectStory(story.id)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    handleSelectStory(story.id)
+                                }
+                            }}
+                        >
                             {/* Cover Image */}
                             <div className={styles.coverImage}>
                                 <img
@@ -113,7 +125,10 @@ export default function StoriesPage() {
 
                                 <Button
                                     size="lg"
-                                    onClick={() => handleSelectStory(story.id)}
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // Prevent double triggers
+                                        handleSelectStory(story.id)
+                                    }}
                                     className={styles.playButton}
                                 >
                                     <span className={styles.buttonIcon}>⚡</span>
