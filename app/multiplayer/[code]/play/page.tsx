@@ -10,6 +10,16 @@ import AnimatedText from '@/components/ui/AnimatedText'
 import styles from '@/app/game/play/play.module.css' // Reuse styles
 import { soundManager } from '@/lib/audio/SoundManager'
 
+type GamePhase = 'PROPOSING' | 'VOTING' | 'RESOLVING'
+
+interface Proposal {
+    id: string
+    player_id: string
+    content: string
+    vote_count: number
+    voters: string[]
+}
+
 export default function MPGamePage({ params }: { params: { code: string } }) {
     const router = useRouter()
     const supabase = createClient()
@@ -21,6 +31,10 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
     const [analyzing, setAnalyzing] = useState(false)
     const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
     const [animationClass, setAnimationClass] = useState('')
+
+    // Democracy State
+    const [gamePhase, setGamePhase] = useState<GamePhase>('PROPOSING')
+    const [proposals, setProposals] = useState<Proposal[]>([])
 
     // Local score state (synced to DB eventually)
     const [myScore, setMyScore] = useState(0)
@@ -45,12 +59,53 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
 
     }, [lobby, currentUser])
 
+    // Subscription for Proposals
+    useEffect(() => {
+        if (!params.code) return
+
+        // Initial fetch
+        const fetchProposals = async () => {
+            const { data } = await supabase
+                .from('lobby_proposals')
+                .select('*')
+                .eq('lobby_code', params.code)
+                .eq('is_active', true)
+
+            if (data) setProposals(data)
+        }
+        fetchProposals()
+
+        const channel = supabase
+            .channel(`proposals:${params.code}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'lobby_proposals',
+                filter: `lobby_code=eq.${params.code}`
+            }, (payload: any) => {
+                if (payload.eventType === 'INSERT') {
+                    setProposals(prev => [...prev, payload.new])
+                } else if (payload.eventType === 'UPDATE') {
+                    setProposals(prev => prev.map(p => p.id === payload.new.id ? payload.new : p))
+                }
+            })
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [params.code])
+
     // Sync Scene
     useEffect(() => {
         const syncScene = async () => {
             if (lobby?.current_scene_id) {
                 const scene = await getSceneById(lobby.current_scene_id)
                 setCurrentScene(scene)
+                // New scene? Reset phase and clear proposals (in a real app we'd archive them)
+                setGamePhase('PROPOSING')
+                setProposals([])
+                setFeedback(null)
             } else if (story) {
                 // Fallback for non-host clients initially
                 const scene = await getSceneById(story.starting_scene_id)
@@ -69,125 +124,101 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
         }
     }, [currentScene])
 
-    const [successfulMoves, setSuccessfulMoves] = useState(0)
-
-    const checkAchievement = async (conditionCode: string) => {
-        if (!story || !currentUser) return
-
-        // Map generic codes to story-specific ones if needed
-        let finalCode = conditionCode
-        if (conditionCode === 'MP_VICTORY') {
-            if (story.title.includes('Tanaji')) finalCode = 'MP_VICTORY_TANAJI'
-            else if (story.title.includes('Baji')) finalCode = 'MP_VICTORY_BAJI'
-            else finalCode = 'MP_VICTORY_GENERIC'
-        }
-        if (conditionCode === 'MP_MVP') {
-            if (story.title.includes('Tanaji')) finalCode = 'MP_MVP_TANAJI'
-            else if (story.title.includes('Baji')) finalCode = 'MP_MVP_BAJI'
-            else finalCode = 'MP_MVP_GENERIC'
-        }
+    const handlePropose = async () => {
+        if (!userInput.trim()) return
 
         try {
-            await fetch('/api/achievements', {
+            await fetch('/api/lobby/propose', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    storyId: story.id, // Use story.id, likely generic from lobby
-                    playerName: currentUser.user_metadata?.username || currentUser.email,
-                    userId: currentUser.id,
-                    conditionCode: finalCode
+                    lobbyCode: params.code,
+                    content: userInput
                 })
             })
-            // Toast notification could look nice here too, but simple for now
+            setUserInput('')
         } catch (e) {
-            console.error('Achievement check failed', e)
+            console.error(e)
         }
     }
 
-    const handleSubmitDecision = async () => {
-        if (!userInput.trim() || !currentScene || !story) return
+    const handleVote = async (proposalId: string) => {
+        if (!currentUser) return
+        // Check if already voted
+        const proposal = proposals.find(p => p.id === proposalId)
+        const hasVoted = proposal?.voters.includes(currentUser.id)
+        const action = hasVoted ? 'UNVOTE' : 'VOTE'
+
+        try {
+            await fetch('/api/lobby/vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ proposalId, action })
+            })
+        } catch (e) {
+            console.error(e)
+        }
+    }
+
+    const handleExecuteWinningProposal = async () => {
+        if (!currentUser || !lobby || proposals.length === 0) return
+
+        // 1. Find Winner
+        const sorted = [...proposals].sort((a, b) => b.vote_count - a.vote_count)
+        const winner = sorted[0]
 
         setAnalyzing(true)
-        setFeedback(null)
-        soundManager.speak('')
+        setGamePhase('RESOLVING')
 
+        // 2. Analyze
         try {
             const response = await fetch('/api/analyze-decision', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userInput,
-                    validPaths: currentScene.valid_paths,
-                    sceneContext: currentScene.content,
-                }),
+                    userInput: winner.content,
+                    validPaths: currentScene?.valid_paths,
+                    sceneContext: currentScene?.content,
+                })
             })
-
             const analysis = await response.json()
 
             if (analysis.matched_path) {
-                const newScore = myScore + 20
-                setMyScore(newScore)
-                const newScore = myScore + 20
-                setMyScore(newScore)
-                soundManager.playTone('success')
-                setAnimationClass('pulse-success')
-                setTimeout(() => setAnimationClass(''), 500)
-
+                // Success!
                 setFeedback({
-                    message: analysis.matched_path.success_message || analysis.message,
+                    message: `Verified: "${winner.content}" - ${analysis.matched_path.success_message}`,
                     type: 'success'
                 })
+                soundManager.playTone('success')
+                setAnimationClass('pulse-success')
 
-                // Track MVP progress locally
-                const newMoves = successfulMoves + 1
-                setSuccessfulMoves(newMoves)
-                if (newMoves === 5) {
-                    checkAchievement('MP_MVP')
-                }
-
-                // Update my score in DB
-                if (currentUser) {
-                    await supabase
-                        .from('lobby_players')
-                        .update({ score: newScore })
-                        .eq('lobby_code', lobby?.code)
-                        .eq('user_id', currentUser.id)
-                }
-
-                // Advance Scene for EVERYONE
-                setTimeout(async () => {
-                    if (currentScene.is_ending) {
-                        setFeedback({
-                            message: '🏆 Journey Complete!',
-                            type: 'success'
-                        })
-                        checkAchievement('MP_VICTORY')
-                        return
-                    }
-
-                    // Perform the update
+                // Update Scene
+                setTimeout(() => {
                     updateLobbyScene(analysis.matched_path.next_scene_id)
-                    setUserInput('')
-                    setFeedback(null)
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                }, 2000)
+                    // Clean up proposals for next round could be done via DB trigger or manual API
+                }, 3000)
 
             } else {
-                setMyScore(prev => Math.max(0, prev - 5))
-                setMyScore(prev => Math.max(0, prev - 5))
+                // Failure
+                setFeedback({
+                    message: `Failed: "${winner.content}" - The party stumbles!`,
+                    type: 'error'
+                })
                 soundManager.playTone('error')
                 setAnimationClass('shake')
-                setTimeout(() => setAnimationClass(''), 500)
-                setFeedback({ message: "The party fails to utilize that action. Try again.", type: 'error' })
+                setAnalyzing(false)
+                setGamePhase('PROPOSING')
             }
-        } catch (error) {
-            console.error('Error analyzing decision:', error)
-        } finally {
+
+        } catch (e) {
+            console.error(e)
             setAnalyzing(false)
         }
     }
 
     if (!story || !currentScene) return <div className={styles.main}><div className="spinner"></div></div>
+
+    const isHost = currentUser?.id === lobby?.host_id
 
     return (
         <main className={styles.main}>
@@ -198,7 +229,7 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
                     <span className={styles.sceneNumber}>Multiplayer • Scene {currentScene.scene_number}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                    <span style={{ color: '#40e0d0' }}>My Score: {myScore}</span>
+                    <span className={styles.phaseBadge}>{gamePhase} PHASE</span>
                     <Button variant="outline" size="sm" onClick={() => router.push(`/multiplayer/${params.code}`)}>
                         Lobby
                     </Button>
@@ -227,12 +258,48 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
 
                     {!currentScene.is_ending ? (
                         <>
-                            <div className={styles.questionSection}>
-                                <div className={styles.callout}>
-                                    <p><AnimatedText text={currentScene.overview} delay={40} /></p>
+                            {/* FEEDBACK AREA */}
+                            {feedback && (
+                                <div className={`${styles.feedback} ${styles[feedback.type]}`}>
+                                    {feedback.message}
                                 </div>
+                            )}
+
+                            {/* PROPOSAL LIST */}
+                            <div className={styles.proposalList}>
+                                <h3>Proposals ({proposals.length})</h3>
+                                {proposals.map(p => (
+                                    <div key={p.id} className={styles.proposalItem} style={{
+                                        padding: '10px',
+                                        margin: '5px 0',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        borderRadius: '8px',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        border: p.voters.includes(currentUser?.id) ? '1px solid var(--neon-green)' : '1px solid transparent'
+                                    }}>
+                                        <span>"{p.content}"</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <span>{p.vote_count} 🗳️</span>
+                                            <Button size="sm" variant="secondary" onClick={() => handleVote(p.id)}>
+                                                {p.voters.includes(currentUser?.id) ? 'Retract' : 'Vote'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
 
+                            {/* HOST CONTROLS */}
+                            {isHost && proposals.length > 0 && gamePhase === 'PROPOSING' && (
+                                <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                                    <Button onClick={handleExecuteWinningProposal} disabled={analyzing}>
+                                        {analyzing ? 'Resolving...' : '👑 Execute Winning Action'}
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* INPUT SECTION */}
                             <div className={styles.inputSection}>
                                 <div className={styles.inputWrapper}>
                                     <textarea
@@ -240,20 +307,15 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
                                         value={userInput}
                                         onChange={(e) => setUserInput(e.target.value)}
                                         placeholder="Propose an action..."
-                                        rows={3}
-                                        disabled={analyzing}
+                                        rows={2}
+                                        disabled={analyzing || gamePhase === 'RESOLVING'}
                                     />
-                                    {feedback && (
-                                        <div className={`${styles.feedback} ${styles[feedback.type]}`}>
-                                            {feedback.message}
-                                        </div>
-                                    )}
                                     <button
                                         className={styles.submitButton}
-                                        onClick={handleSubmitDecision}
+                                        onClick={handlePropose}
                                         disabled={!userInput.trim() || analyzing}
                                     >
-                                        {analyzing ? 'Analysis...' : 'Act for Party'}
+                                        Propose
                                     </button>
                                 </div>
                             </div>
@@ -276,7 +338,7 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
                 {players.map(p => (
                     <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.9rem' }}>
                         <span>{p.username}</span>
-                        <span style={{ color: '#4ade80' }}>{p.score || 0} pts</span>
+                        {p.is_host && <span title="Host">👑</span>}
                     </div>
                 ))}
             </div>

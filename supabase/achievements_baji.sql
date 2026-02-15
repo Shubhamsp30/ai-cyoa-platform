@@ -4,45 +4,51 @@
 
 DO $$
 DECLARE
-    story_id uuid;
+    target_story_id uuid;
 BEGIN
-    SELECT id INTO story_id FROM stories WHERE title ILIKE '%Baji%' LIMIT 1;
+    SELECT id INTO target_story_id FROM stories WHERE title ILIKE '%Baji%' LIMIT 1;
 
-    IF story_id IS NOT NULL THEN
+    IF target_story_id IS NOT NULL THEN
         -- 1. The Ultimate Volunteer (Entering Scene 7)
-        INSERT INTO achievements (story_id, condition_code, title, description, icon_url, created_at)
+        INSERT INTO achievements (story_id, condition_code, title, description, icon, xp_reward, created_at)
         VALUES (
-            story_id,
+            target_story_id,
             'BAJI_VOLUNTEER',
             'The Ultimate Volunteer',
             'You chose to stay back and hold the pass while the King escapes.',
-            'https://api.iconify.design/game-icons:shattered-shield.svg?color=%23ffd700',
+            '🛡️',
+            100,
             NOW()
-        ) ON CONFLICT DO NOTHING;
+        ) ON CONFLICT (story_id, condition_code) DO UPDATE 
+        SET title = EXCLUDED.title, description = EXCLUDED.description, icon = EXCLUDED.icon;
 
         -- 2. Iron Wall (Entering Scene 9 - Survived the main battle)
-        INSERT INTO achievements (story_id, condition_code, title, description, icon_url, created_at)
+        INSERT INTO achievements (story_id, condition_code, title, description, icon, xp_reward, created_at)
         VALUES (
-            story_id,
+            target_story_id,
             'BAJI_IRON_WALL',
             'Iron Wall',
             'You held the enemy back against overwhelming odds.',
-            'https://api.iconify.design/game-icons:stone-wall.svg?color=%23ffd700',
+            '🧱',
+            150,
             NOW()
-        ) ON CONFLICT DO NOTHING;
+        ) ON CONFLICT (story_id, condition_code) DO UPDATE 
+        SET title = EXCLUDED.title, description = EXCLUDED.description, icon = EXCLUDED.icon;
 
         -- 3. Sentinel of Swarajya (Entering Scene 10 - Finale)
-        INSERT INTO achievements (story_id, condition_code, title, description, icon_url, created_at)
+        INSERT INTO achievements (story_id, condition_code, title, description, icon, xp_reward, created_at)
         VALUES (
-            story_id,
+            target_story_id,
             'BAJI_VICTORY',
             'Sentinel of Swarajya',
             'You fulfilled your vow. The King is safe.',
-            'https://api.iconify.design/game-icons:tattered-banner.svg?color=%23ffd700',
+            '🚩',
+            300,
             NOW()
-        ) ON CONFLICT DO NOTHING;
+        ) ON CONFLICT (story_id, condition_code) DO UPDATE 
+        SET title = EXCLUDED.title, description = EXCLUDED.description, icon = EXCLUDED.icon;
         
-        RAISE NOTICE 'Achievements for Bajiprabhu added successfully.';
+        RAISE NOTICE 'Achievements for Bajiprabhu_v2 added successfully.';
     ELSE
         RAISE NOTICE 'Story not found. Achievements not added.';
     END IF;
