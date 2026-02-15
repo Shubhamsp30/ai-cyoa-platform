@@ -27,6 +27,7 @@ export default function PlayPage() {
     const [analyzing, setAnalyzing] = useState(false)
     const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
     const [loading, setLoading] = useState(true)
+    const [animationClass, setAnimationClass] = useState('')
     const { t, labels, language } = useLanguage()
 
     // ... (rest of code)
@@ -171,7 +172,9 @@ export default function PlayPage() {
             if (analysis.matched_path) {
                 const newScore = score + 20
                 setScore(newScore)
-                soundManager.playSFX('sfx_success.mp3')
+                soundManager.playTone('success')
+                setAnimationClass('pulse-success')
+                setTimeout(() => setAnimationClass(''), 500)
 
                 setFeedback({
                     message: analysis.matched_path.success_message || analysis.message,
@@ -249,7 +252,9 @@ export default function PlayPage() {
                 const randomMessage = politeMessages[Math.floor(Math.random() * politeMessages.length)]
 
                 setScore(prev => Math.max(0, prev - 5))
-                soundManager.playSFX('sfx_error.mp3')
+                soundManager.playTone('error')
+                setAnimationClass('shake')
+                setTimeout(() => setAnimationClass(''), 500)
                 setFeedback({ message: randomMessage, type: 'error' })
             }
         } catch (error) {
@@ -420,7 +425,7 @@ export default function PlayPage() {
                                         placeholder={t(currentScene, 'valid_actions_hint') ?
                                             `${labels.placeholder} (Hint: ${t(currentScene, 'valid_actions_hint')})` :
                                             labels.placeholder}
-                                        className={styles.decisionInput}
+                                        className={`${styles.decisionInput} ${animationClass}`}
                                         onKeyPress={(e) => e.key === 'Enter' && handleDecision()}
                                         disabled={analyzing}
                                     />

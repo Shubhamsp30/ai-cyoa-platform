@@ -192,3 +192,26 @@ a:hover {
 .fade-in {
   animation: fadeIn 0.8s ease-out forwards;
 }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.shake {
+  animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 10px var(--color-error);
+}
+
+@keyframes pulseSuccess {
+  0% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 255, 157, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0); }
+}
+
+.pulse-success {
+  animation: pulseSuccess 0.5s ease-out;
+  border-color: var(--color-success) !important;
+}

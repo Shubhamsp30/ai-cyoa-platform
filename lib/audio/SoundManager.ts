@@ -58,12 +58,102 @@ class SoundManager {
         }
     }
 
+    private audioContext: AudioContext | null = null
+
+    private getAudioContext(): AudioContext {
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+        }
+        return this.audioContext
+    }
+
+    playTone(type: 'success' | 'error' | 'click' | 'intro') {
+        if (this.isMuted) return
+        try {
+            const ctx = this.getAudioContext()
+            const osc = ctx.createOscillator()
+            const gain = ctx.createGain()
+
+            osc.connect(gain)
+            gain.connect(ctx.destination)
+
+            const now = ctx.currentTime
+
+            if (type === 'success') {
+                // High-pitched ascending arpeggio (Major triad: C5, E5, G5)
+                osc.type = 'sine'
+                osc.frequency.setValueAtTime(523.25, now) // C5
+                osc.frequency.linearRampToValueAtTime(659.25, now + 0.1) // E5
+                osc.frequency.linearRampToValueAtTime(783.99, now + 0.2) // G5
+
+                gain.gain.setValueAtTime(0.1 * this.volume, now)
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4)
+
+                osc.start(now)
+                osc.stop(now + 0.4)
+            }
+            else if (type === 'error') {
+                // Dissonant buzz
+                osc.type = 'sawtooth'
+                osc.frequency.setValueAtTime(150, now)
+                osc.frequency.linearRampToValueAtTime(100, now + 0.3)
+
+                gain.gain.setValueAtTime(0.1 * this.volume, now)
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.3)
+
+                osc.start(now)
+                osc.stop(now + 0.3)
+            }
+            else if (type === 'click') {
+                // Short blip
+                osc.type = 'triangle'
+                osc.frequency.setValueAtTime(800, now)
+
+                gain.gain.setValueAtTime(0.05 * this.volume, now)
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1)
+
+                osc.start(now)
+                osc.stop(now + 0.1)
+            }
+            else if (type === 'intro') {
+                // Intro sweep
+                osc.type = 'sine'
+                osc.frequency.setValueAtTime(220, now)
+                osc.frequency.exponentialRampToValueAtTime(880, now + 1.0)
+
+                gain.gain.setValueAtTime(0, now)
+                gain.gain.linearRampToValueAtTime(0.1 * this.volume, now + 0.5)
+                gain.gain.linearRampToValueAtTime(0, now + 1.0)
+
+                osc.start(now)
+                osc.stop(now + 1.0)
+            }
+
+        } catch (e) {
+            console.error('Web Audio API error:', e)
+        }
+    }
+
     playSFX(filename: string) {
         if (this.isMuted) return
 
+        // Map existing filenames to synthetic tones
+        if (filename.includes('success')) {
+            this.playTone('success')
+            return
+        }
+        if (filename.includes('error')) {
+            this.playTone('error')
+            return
+        }
+
+        // Fallback to file if it exists (for legacy support)
         const effect = new Audio(`/audio/${filename}`)
-        effect.volume = Math.min(1, this.volume) // Max volume 1.0
-        effect.play().catch(e => console.log('SFX Play failed:', e))
+        effect.volume = Math.min(1, this.volume)
+        effect.play().catch(() => {
+            // If file missing, fallback to click
+            this.playTone('click')
+        })
     }
 
     speak(text: string, language: string = 'en') {

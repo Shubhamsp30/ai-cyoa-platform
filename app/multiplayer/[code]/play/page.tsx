@@ -20,6 +20,7 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
     const [userInput, setUserInput] = useState('')
     const [analyzing, setAnalyzing] = useState(false)
     const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+    const [animationClass, setAnimationClass] = useState('')
 
     // Local score state (synced to DB eventually)
     const [myScore, setMyScore] = useState(0)
@@ -124,7 +125,11 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
             if (analysis.matched_path) {
                 const newScore = myScore + 20
                 setMyScore(newScore)
-                soundManager.playSFX('sfx_success.mp3')
+                const newScore = myScore + 20
+                setMyScore(newScore)
+                soundManager.playTone('success')
+                setAnimationClass('pulse-success')
+                setTimeout(() => setAnimationClass(''), 500)
 
                 setFeedback({
                     message: analysis.matched_path.success_message || analysis.message,
@@ -167,7 +172,10 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
 
             } else {
                 setMyScore(prev => Math.max(0, prev - 5))
-                soundManager.playSFX('sfx_error.mp3')
+                setMyScore(prev => Math.max(0, prev - 5))
+                soundManager.playTone('error')
+                setAnimationClass('shake')
+                setTimeout(() => setAnimationClass(''), 500)
                 setFeedback({ message: "The party fails to utilize that action. Try again.", type: 'error' })
             }
         } catch (error) {
@@ -226,7 +234,7 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
                             <div className={styles.inputSection}>
                                 <div className={styles.inputWrapper}>
                                     <textarea
-                                        className={styles.decisionInput}
+                                        className={`${styles.decisionInput} ${animationClass}`}
                                         value={userInput}
                                         onChange={(e) => setUserInput(e.target.value)}
                                         placeholder="Propose an action..."
