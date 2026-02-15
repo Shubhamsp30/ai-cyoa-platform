@@ -38,6 +38,14 @@ Path ${idx + 1} (${path.outcome_type}):
 - Message: ${path.success_message || path.failure_message || 'Continue'}
 `).join('\n')}
 
+**CRITICAL INSTRUCTIONS**:
+1. **Language Support**: The player may write in **Marathi**, **Hindi**, or **English**. You must support all three.
+2. **Semantic Matching**: Do NOT look for exact keywords. Look for the **Core Intent**.
+   - Example: If the player says "I will bring back the fort at any cost!", and the path is "Attack/Accept Mission", MATCH IT.
+   - Example: "I am not ready" matches "Refuse/Wait".
+3. **Dramatic Text**: Players often roleplay with long, dramatic sentences. Ignore the fluff and find the action verb.
+4. **Cultural Nuance**: phrases like "Jeev gela tari chalel" (even if I die) or "Raiba" indicate determination/Acceptance.
+
 Analyze the player's input and determine:
 1. What is the player's intent?
 2. Which path (if any) does it match best?
@@ -54,16 +62,15 @@ Respond in JSON format:
 
     try {
         let analysis: any = {}
-
+        // ... (API calling logic remains same, just ensuring prompt is used)
         if (apiKey.startsWith('sk-')) {
-            // OpenAI Path
             const openai = new OpenAI({ apiKey })
             const response = await openai.chat.completions.create({
                 model: 'gpt-4o',
                 messages: [
                     {
                         role: 'system',
-                        content: 'You are an expert at understanding player intent in narrative games. Be generous in matching player intent to valid paths, but also recognize when a player is trying something completely different. Output valid JSON.',
+                        content: 'You are an expert at understanding player intent in narrative games. Be generous in matching player intent to valid paths. Output valid JSON.',
                     },
                     { role: 'user', content: systemPrompt },
                 ],
@@ -71,17 +78,13 @@ Respond in JSON format:
                 response_format: { type: 'json_object' },
             })
             analysis = JSON.parse(response.choices[0].message.content || '{}')
-
         } else if (apiKey.startsWith('AIza')) {
-            // Google Gemini Path
             const genAI = new GoogleGenerativeAI(apiKey)
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", generationConfig: { responseMimeType: "application/json" } })
-
             const result = await model.generateContent(systemPrompt)
             const text = result.response.text()
             analysis = JSON.parse(text)
         } else {
-            console.warn("Unknown API Key format, attempting OpenAI default...")
             const openai = new OpenAI({ apiKey })
             const response = await openai.chat.completions.create({
                 model: 'gpt-4o',
@@ -91,46 +94,49 @@ Respond in JSON format:
             analysis = JSON.parse(response.choices[0].message.content || '{}')
         }
 
+        // ...
+
         // Match the path
         const matchedPath =
             (analysis.matched_path_index !== null && analysis.matched_path_index !== undefined)
                 ? validPaths[analysis.matched_path_index]
                 : null
 
-        // Generate appropriate message
-        let message = ''
-        if (matchedPath) {
-            message =
-                matchedPath.success_message ||
-                matchedPath.failure_message ||
-                'You proceed with your decision...'
-        } else {
-            message = `Your decision to "${analysis.detected_intent || userInput}" is not aligned with the available paths in this scene. ${analysis.reasoning || ''} Please try a different approach.`
-        }
+        // ... (message generation)
 
         return {
             detected_intent: analysis.detected_intent || userInput,
             matched_path: matchedPath,
             confidence: analysis.confidence || 0,
             reasoning: analysis.reasoning || '',
-            message,
+            message: matchedPath ? (matchedPath.success_message || matchedPath.failure_message || 'You proceed...') : (analysis.message || 'Invalid choice'),
         }
 
     } catch (error) {
         console.error('AI analysis error:', error)
 
-        // Fallback: simple keyword matching
+        // JOINED LOGIC FOR FALLBACK
+        // Improve fallback to check for any token match
         const lowerInput = userInput.toLowerCase()
+        const inputTokens = lowerInput.split(/[\s,!.?]+/)
+
         let bestMatch: ValidPath | null = null
         let bestScore = 0
 
         for (const path of validPaths) {
-            const matchCount = path.intent_keywords.filter((keyword) =>
-                lowerInput.includes(keyword.toLowerCase())
-            ).length
+            // Check occurrences of keywords in input
+            let currentScore = 0
+            for (const keyword of path.intent_keywords) {
+                const lowerKeyword = keyword.toLowerCase()
+                // 1. Direct substring match (good for short keywords)
+                if (lowerInput.includes(lowerKeyword)) currentScore += 2
 
-            if (matchCount > bestScore) {
-                bestScore = matchCount
+                // 2. Token match (good for robustness)
+                if (inputTokens.includes(lowerKeyword)) currentScore += 1
+            }
+
+            if (currentScore > bestScore) {
+                bestScore = currentScore
                 bestMatch = path
             }
         }
@@ -138,7 +144,7 @@ Respond in JSON format:
         return {
             detected_intent: userInput,
             matched_path: bestScore > 0 ? bestMatch : null,
-            confidence: bestScore > 0 ? 0.7 : 0,
+            confidence: bestScore > 0 ? 0.6 : 0,
             reasoning: 'Fallback keyword matching used due to AI error',
             message:
                 bestMatch && bestScore > 0
