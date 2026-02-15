@@ -1,0 +1,149 @@
+.main {
+    min-height: 100vh;
+    background: #000;
+    position: relative;
+    overflow-x: hidden;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    padding-top: 80px;
+    /* Space for fixed header/back button */
+}
+
+/* Back Button */
+.backButton {
+    position: fixed;
+    top: 2rem;
+    left: 2rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0.8rem 1.5rem;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.backButton:hover {
+    background: rgba(64, 224, 208, 0.2);
+    border-color: #40e0d0;
+    transform: translateX(-5px);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    position: relative;
+    z-index: 10;
+}
+
+.title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #fff;
+    text-align: center;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, #fff 0%, #40e0d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 4px 20px rgba(64, 224, 208, 0.3);
+}
+
+.leaderboardCard {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    padding: 2rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.tableHeader {
+    display: grid;
+    grid-template-columns: 0.5fr 2fr 1fr 1.5fr;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 700;
+    color: rgba(64, 224, 208, 0.8);
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+.tableRow {
+    display: grid;
+    grid-template-columns: 0.5fr 2fr 1fr 1.5fr;
+    padding: 1.2rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #fff;
+    align-items: center;
+    transition: background 0.2s ease;
+}
+
+.tableRow:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.rank {
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.topRank {
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.playerName {
+    font-weight: 600;
+}
+
+.score {
+    font-family: monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #40e0d0;
+}
+
+.ending {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 4rem 0;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.1rem;
+}
+
+/* Loading Spinner */
+.loading {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #40e0d0;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

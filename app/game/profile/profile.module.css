@@ -1,0 +1,224 @@
+/* Profile Page CSS */
+.main {
+    min-height: 100vh;
+    padding: 2rem;
+    background: radial-gradient(circle at 50% 10%, #1a1a2e 0%, #000 100%);
+    color: #fff;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.pageTitle {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #40e0d0 0%, #ff69b4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #40e0d0, #ff69b4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3rem;
+    font-weight: bold;
+    color: #000;
+    margin-bottom: 1rem;
+    box-shadow: 0 0 20px rgba(64, 224, 208, 0.4);
+}
+
+.username {
+    margin: 0.5rem 0;
+    font-size: 1.5rem;
+}
+
+.email {
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 2rem;
+}
+
+.statsRow {
+    display: flex;
+    gap: 2rem;
+    width: 100%;
+    justify-content: space-around;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.statValue {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #40e0d0;
+}
+
+.statLabel {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+}
+
+/* Match History */
+.matchList {
+    width: 100%;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.matchItem {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.matchItem:last-child {
+    border-bottom: none;
+}
+
+.matchInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.matchTitle {
+    font-weight: 600;
+    color: #fff;
+}
+
+.matchDate {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.matchScore {
+    font-weight: 700;
+    color: #ff69b4;
+}
+
+/* Right Column */
+.sectionTitle {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    border-left: 4px solid #ffd700;
+    padding-left: 1rem;
+}
+
+.achievementGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.achievementCard {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+}
+
+.achievementCard:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(64, 224, 208, 0.3);
+}
+
+.icon {
+    font-size: 2.5rem;
+    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
+}
+
+.info h4 {
+    margin: 0 0 0.5rem 0;
+    color: #ffd700;
+}
+
+.info p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.4;
+}
+
+.xp {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    background: rgba(64, 224, 208, 0.2);
+    color: #40e0d0;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.date {
+    position: absolute;
+    bottom: 10px;
+    right: 15px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.emptyState {
+    text-align: center;
+    padding: 4rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
