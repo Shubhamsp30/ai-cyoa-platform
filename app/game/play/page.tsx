@@ -162,7 +162,9 @@ export default function PlayPage() {
 
         setAnalyzing(true)
         setFeedback(null)
-        soundManager.speak('', language)
+        setAnalyzing(true)
+        setFeedback(null)
+        // soundManager.speak('', language) // REMOVED: Do not cancel speech or auto-speak here
 
         try {
             const response = await fetch('/api/analyze-decision', {

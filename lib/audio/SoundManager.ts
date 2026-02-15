@@ -150,31 +150,31 @@ class SoundManager {
                 osc.frequency.setValueAtTime(notes[2], t + 0.2)
                 osc.frequency.setValueAtTime(notes[3], t + 0.3)
 
-                gain.gain.setValueAtTime(0.1 * this.volume, t)
-                gain.gain.setValueAtTime(0.1 * this.volume, t + 0.3)
-                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.6)
+                gain.gain.setValueAtTime(0.3 * this.volume, t)
+                gain.gain.setValueAtTime(0.3 * this.volume, t + 0.3)
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 1.0) // Longer tail
 
                 osc.start(t)
-                osc.stop(t + 0.6)
+                osc.stop(t + 1.0)
             }
             else if (type === 'error') {
                 // LOW BUZZ
                 osc.type = 'sawtooth'
                 osc.frequency.setValueAtTime(150, now)
-                osc.frequency.linearRampToValueAtTime(100, now + 0.4)
+                osc.frequency.linearRampToValueAtTime(100, now + 0.5)
 
-                gain.gain.setValueAtTime(0.2 * this.volume, now) // Louder error
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.4)
+                gain.gain.setValueAtTime(0.4 * this.volume, now) // Much louder error
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.5)
 
                 osc.start(now)
-                osc.stop(now + 0.4)
+                osc.stop(now + 0.5)
             }
             else if (type === 'click') {
                 // Short blip
                 osc.type = 'triangle'
                 osc.frequency.setValueAtTime(800, now)
 
-                gain.gain.setValueAtTime(0.05 * this.volume, now)
+                gain.gain.setValueAtTime(0.2 * this.volume, now) // Boosted click
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1)
 
                 osc.start(now)

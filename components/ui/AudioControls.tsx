@@ -30,27 +30,6 @@ export default function AudioControls() {
             gap: '10px'
         }}>
             <button
-                onClick={toggleVoice}
-                style={{
-                    background: 'rgba(0,0,0,0.6)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '50%',
-                    width: '40px',
-                    height: '40px',
-                    color: voiceEnabled ? '#40e0d0' : '#666',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.2rem',
-                    transition: 'all 0.3s ease'
-                }}
-                title="Toggle Narration"
-            >
-                {voiceEnabled ? '🗣️' : '😶'}
-            </button>
-
-            <button
                 onClick={toggleMute}
                 style={{
                     background: 'rgba(0,0,0,0.6)',
