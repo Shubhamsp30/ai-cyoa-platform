@@ -17,6 +17,7 @@ export interface LobbyPlayer {
     username: string
     is_ready: boolean
     is_host: boolean
+    score: number
 }
 
 export function useLobby(lobbyCode: string) {
