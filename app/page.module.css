@@ -1,17 +1,21 @@
 /* Base Layout matching Glass Theme */
 .main {
-  min-height: 100vh;
+  height: 100vh;
+  /* Fixed height for screen fit */
+  width: 100%;
   display: flex;
   flex-direction: column;
   background: radial-gradient(circle at center, #1a1a2e 0%, #000 100%);
   position: relative;
-  overflow-x: hidden;
+  overflow: hidden;
+  /* Prevent window scroll */
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* Glassmorphism Background Elements */
 .bgAnimation {
-  position: fixed;
+  position: absolute;
+  /* Changed from fixed to absolute inside relative container */
   top: 0;
   left: 0;
   width: 100%;
@@ -20,55 +24,7 @@
   pointer-events: none;
 }
 
-.bgAnimation::before {
-  content: '';
-  position: absolute;
-  top: -20%;
-  left: -20%;
-  width: 70%;
-  height: 70%;
-  background: radial-gradient(circle, rgba(64, 224, 208, 0.08), transparent 70%);
-  /* Turquoise */
-  filter: blur(80px);
-  animation: float 25s infinite ease-in-out;
-}
-
-.bgAnimation::after {
-  content: '';
-  position: absolute;
-  bottom: -20%;
-  right: -20%;
-  width: 70%;
-  height: 70%;
-  background: radial-gradient(circle, rgba(255, 105, 180, 0.08), transparent 70%);
-  /* Pink */
-  filter: blur(80px);
-  animation: float-reverse 30s infinite ease-in-out;
-}
-
-@keyframes float {
-
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-
-  50% {
-    transform: translate(100px, 50px);
-  }
-}
-
-@keyframes float-reverse {
-
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-
-  50% {
-    transform: translate(-100px, -50px);
-  }
-}
+/* ... background animations ... */
 
 .hero {
   flex: 1;
@@ -77,8 +33,14 @@
   justify-content: center;
   position: relative;
   z-index: 1;
-  padding: var(--spacing-2xl) var(--spacing-lg);
-  min-height: 100vh;
+  padding: var(--spacing-lg);
+  /* Reduced padding */
+  height: 100%;
+  overflow-y: auto;
+  /* Allow internal scroll if needed */
+  scrollbar-width: thin;
+  /* Firefox */
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 .heroContent {
