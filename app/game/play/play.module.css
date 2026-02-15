@@ -469,3 +469,41 @@
         padding: 0.5rem;
     }
 }
+
+/* Virtual Keyboard Toggle */
+.iconButton {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow:
+        0 4px 0 rgba(255, 255, 255, 0.1),
+        0 5px 10px rgba(0, 0, 0, 0.3);
+    color: #fff;
+}
+
+.iconButton:hover {
+    transform: translateY(2px);
+    box-shadow:
+        0 2px 0 rgba(255, 255, 255, 0.1),
+        0 2px 5px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.iconButton:active,
+.iconButton.active {
+    transform: translateY(4px);
+    box-shadow: none;
+    background: var(--color-primary);
+    color: #000;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 15px var(--color-primary);
+}
