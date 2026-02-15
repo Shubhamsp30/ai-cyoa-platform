@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-    title: 'Tanaji - AI-Powered Adventure',
-    description: 'Experience the legendary conquest of Sinhagad fort through AI-powered storytelling',
+    title: 'AI CYOA Platform - Interactive Storytelling',
+    description: 'Experience immersive interactive storytelling with AI-powered adventures. Create your own legend.',
 }
 
 import { LanguageProvider } from '@/contexts/LanguageContext'
