@@ -79,10 +79,12 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
         if (conditionCode === 'MP_VICTORY') {
             if (story.title.includes('Tanaji')) finalCode = 'MP_VICTORY_TANAJI'
             else if (story.title.includes('Baji')) finalCode = 'MP_VICTORY_BAJI'
+            else finalCode = 'MP_VICTORY_GENERIC'
         }
         if (conditionCode === 'MP_MVP') {
             if (story.title.includes('Tanaji')) finalCode = 'MP_MVP_TANAJI'
             else if (story.title.includes('Baji')) finalCode = 'MP_MVP_BAJI'
+            else finalCode = 'MP_MVP_GENERIC'
         }
 
         try {
