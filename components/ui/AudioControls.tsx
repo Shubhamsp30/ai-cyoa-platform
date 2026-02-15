@@ -71,6 +71,27 @@ export default function AudioControls() {
                 {isMuted ? '🔇' : '🔊'}
             </button>
 
+            <button
+                onClick={() => soundManager.playTone('success')}
+                style={{
+                    background: 'rgba(0,0,0,0.6)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    color: '#fbbf24',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.2rem',
+                    transition: 'all 0.3s ease'
+                }}
+                title="Test Sound"
+            >
+                🔔
+            </button>
+
 
         </div>
     )

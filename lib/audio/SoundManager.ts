@@ -8,7 +8,7 @@ class SoundManager {
 
     private isMuted: boolean = false
     private isVoiceEnabled: boolean = true
-    private volume: number = 1.0 // Increased from 0.5 to 1.0
+    private volume: number = 0.5 // Default reasonable volume
 
     constructor() {
         if (typeof window !== 'undefined') {
@@ -136,29 +136,38 @@ class SoundManager {
             const now = ctx.currentTime
 
             if (type === 'success') {
-                // High-pitched ascending arpeggio (Major triad: C5, E5, G5)
-                osc.type = 'sine'
-                osc.frequency.setValueAtTime(523.25, now) // C5
-                osc.frequency.linearRampToValueAtTime(659.25, now + 0.1) // E5
-                osc.frequency.linearRampToValueAtTime(783.99, now + 0.2) // G5
+                // VICTORY FANFARE (Arpeggio)
+                // C5 -> E5 -> G5 -> C6
+                const t = now
+                const notes = [523.25, 659.25, 783.99, 1046.50]
 
-                gain.gain.setValueAtTime(0.1 * this.volume, now)
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4)
+                // We need multiple oscillators for a chord/arpeggio, OR fast sequence
+                // Let's do a fast sequence with one osc to keep it simple but distinct
+                osc.type = 'square' // Square wave cuts through better like an 8-bit game
+
+                osc.frequency.setValueAtTime(notes[0], t)
+                osc.frequency.setValueAtTime(notes[1], t + 0.1)
+                osc.frequency.setValueAtTime(notes[2], t + 0.2)
+                osc.frequency.setValueAtTime(notes[3], t + 0.3)
+
+                gain.gain.setValueAtTime(0.1 * this.volume, t)
+                gain.gain.setValueAtTime(0.1 * this.volume, t + 0.3)
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.6)
+
+                osc.start(t)
+                osc.stop(t + 0.6)
+            }
+            else if (type === 'error') {
+                // LOW BUZZ
+                osc.type = 'sawtooth'
+                osc.frequency.setValueAtTime(150, now)
+                osc.frequency.linearRampToValueAtTime(100, now + 0.4)
+
+                gain.gain.setValueAtTime(0.2 * this.volume, now) // Louder error
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.4)
 
                 osc.start(now)
                 osc.stop(now + 0.4)
-            }
-            else if (type === 'error') {
-                // Dissonant buzz
-                osc.type = 'sawtooth'
-                osc.frequency.setValueAtTime(150, now)
-                osc.frequency.linearRampToValueAtTime(100, now + 0.3)
-
-                gain.gain.setValueAtTime(0.1 * this.volume, now)
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.3)
-
-                osc.start(now)
-                osc.stop(now + 0.3)
             }
             else if (type === 'click') {
                 // Short blip
