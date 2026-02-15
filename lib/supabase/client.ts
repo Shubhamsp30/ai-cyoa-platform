@@ -17,6 +17,7 @@ export interface Story {
     is_published: boolean
     created_at: string
     translations?: Record<string, any> // jsonb default {}
+    available_characters?: string[]
 }
 
 export interface Scene {
