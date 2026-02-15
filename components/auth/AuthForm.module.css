@@ -72,6 +72,16 @@
     border-radius: 4px;
 }
 
+.success {
+    color: #4ade80;
+    font-size: 0.9rem;
+    text-align: center;
+    background: rgba(74, 222, 128, 0.1);
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid rgba(74, 222, 128, 0.2);
+}
+
 .submitBtn {
     width: 100%;
     margin-top: 1rem;

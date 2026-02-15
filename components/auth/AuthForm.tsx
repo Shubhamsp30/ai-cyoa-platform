@@ -14,6 +14,7 @@ export default function AuthForm() {
     const [isLogin, setIsLogin] = useState(true)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [successMessage, setSuccessMessage] = useState<string | null>(null)
     const [showPassword, setShowPassword] = useState(false)
     const router = useRouter()
     const supabase = createClient()
@@ -22,6 +23,7 @@ export default function AuthForm() {
         e.preventDefault()
         setLoading(true)
         setError(null)
+        setSuccessMessage(null)
 
         try {
             if (isLogin) {
@@ -64,10 +66,10 @@ export default function AuthForm() {
                 if (data.session) {
                     router.push('/')
                     router.refresh()
-                } else {
+                } else if (data.user && !data.session) {
                     // Switch to login mode and show success message
                     setIsLogin(true)
-                    setError('Account created! Please sign in.')
+                    setSuccessMessage('Account created! Please check your email to verify your account before logging in.')
                 }
             }
         } catch (error: any) {
@@ -132,6 +134,7 @@ export default function AuthForm() {
                 </div>
 
                 {error && <p className={styles.error}>{error}</p>}
+                {successMessage && <p className={styles.success}>{successMessage}</p>}
 
                 <Button type="submit" disabled={loading} className={styles.submitBtn}>
                     {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
