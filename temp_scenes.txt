@@ -1,0 +1,30 @@
+Scene 1: The Patriot's Calling
+Overview: Will you pledge your life to the cause of Swarajya?
+----------------
+Scene 2: The Trap at Panhala
+Overview: We are trapped. Starvation or surrender seems imminent. What is your counsel?
+----------------
+Scene 3: The Grand Deception
+Overview: A risky plan involving a decoy is proposed. Do you support it?
+----------------
+Scene 4: The Decoy's Sacrifice
+Overview: The decoy has been captured. The enemy is distracted. We must prevent his death being in vain.
+----------------
+Scene 5: The Race to Ghod Khind
+Overview: The enemy is in hot pursuit. Ride through the storm!
+----------------
+Scene 6: The Ultimate Volunteer
+Overview: They are too close. Someone must hold them back at the pass.
+----------------
+Scene 7: The Towering Stand
+Overview: They are here. Wave after wave. Hold the line!
+----------------
+Scene 8: The Final Push
+Overview: You are losing blood. You must wait for the cannon signal.
+----------------
+Scene 9: The Smile of Victory
+Overview: BOOM! The cannons fire. The King is safe.
+----------------
+Scene 10: Pavan Khind—The Sacred Pass
+Overview: Journey Complete.
+----------------

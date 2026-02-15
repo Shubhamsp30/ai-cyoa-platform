@@ -208,6 +208,18 @@ export default function PlayPage() {
                     checkAchievement('UDAYBHAN_SLAYER')
                 }
 
+                // Story 2: Bajiprabhu Achievements
+                if (story.title.includes('Baji')) {
+                    // Check for The Ultimate Volunteer (Entering Scene 7 implied)
+                    if (currentScene.scene_number === 6) {
+                        checkAchievement('BAJI_VOLUNTEER')
+                    }
+                    // Check for Iron Wall (Surviving to Scene 9)
+                    if (currentScene.scene_number === 8) {
+                        checkAchievement('BAJI_IRON_WALL')
+                    }
+                } // End Story 2 Logic
+
                 if (userInput.toLowerCase().includes('peace') || userInput.toLowerCase().includes('talk')) {
                     checkAchievement('PEACEFUL_CHOICE')
                 } else if (userInput.toLowerCase().includes('attack') || userInput.toLowerCase().includes('fight')) {
@@ -222,6 +234,10 @@ export default function PlayPage() {
                         })
                         // Game Completion Achievements
                         checkAchievement('SINHAGAD_CONQUEROR')
+
+                        if (story.title.includes('Baji')) {
+                            checkAchievement('BAJI_VICTORY')
+                        }
 
                         // Check High Score Achievement
                         if (newScore >= 1000) {
