@@ -2,12 +2,16 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey)
+// Initialize Supabase client inside the handler to avoid build-time errors
+// const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+// const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// const supabase = createClient(supabaseUrl, supabaseKey)
 
 export async function POST(request: Request) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
     const body = await request.json()
     const { storyId, playerName, conditionCode, userId } = body
 
