@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import Button from '@/components/ui/Button'
 import styles from './page.module.css'
+import { soundManager } from '@/lib/audio/SoundManager'
 
 import LanguageSelector from '@/components/ui/LanguageSelector'
 
@@ -44,7 +45,10 @@ export default function Home() {
             <div style={{ display: 'flex', gap: '1rem', flexDirection: 'column' }}>
               <Button
                 size="lg"
-                onClick={() => router.push('/game/stories')}
+                onClick={() => {
+                  soundManager.playTone('intro')
+                  router.push('/game/stories')
+                }}
                 className={styles.mainCta}
               >
                 <span className={styles.ctaIcon}>⚡</span>
@@ -55,7 +59,10 @@ export default function Home() {
               <Button
                 size="lg"
                 variant="secondary"
-                onClick={() => router.push('/multiplayer')}
+                onClick={() => {
+                  soundManager.playTone('click')
+                  router.push('/multiplayer')
+                }}
                 className={styles.mainCta}
                 style={{ background: 'rgba(64, 224, 208, 0.2)', borderColor: '#40e0d0', color: '#40e0d0' }}
               >

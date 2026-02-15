@@ -40,21 +40,71 @@ class SoundManager {
         }
     }
 
+    private bgmOscillators: OscillatorNode[] = []
+    private bgmGain: GainNode | null = null
+
     playBGM(filename: string) {
         if (this.isMuted) return
 
-        // Stop previous BGM if different
-        if (this.bgm && !this.bgm.src.includes(filename)) {
-            this.fadeOutAndStop(this.bgm)
-        }
+        // Stop ANY existing BGM (file or synthetic)
+        this.stopBGM()
 
-        // Create new BGM if not exists or different
-        if (!this.bgm || !this.bgm.src.includes(filename)) {
-            this.bgm = new Audio(`/audio/${filename}`)
-            this.bgm.loop = true
-            this.bgm.volume = 0
-            this.bgm.play().catch(e => console.log('Autoplay prevented:', e))
-            this.fadeIn(this.bgm)
+        try {
+            const ctx = this.getAudioContext()
+            if (ctx.state === 'suspended') ctx.resume()
+
+            // Create a dark ambient drone
+            const osc1 = ctx.createOscillator()
+            const osc2 = ctx.createOscillator()
+            const gain = ctx.createGain()
+
+            // Low drone
+            osc1.type = 'triangle'
+            osc1.frequency.setValueAtTime(55, ctx.currentTime) // A1
+
+            // Subtledetuning
+            osc2.type = 'sine'
+            osc2.frequency.setValueAtTime(55.5, ctx.currentTime)
+
+            // Low pass filter for "muffled/distant" war sound
+            const filter = ctx.createBiquadFilter()
+            filter.type = 'lowpass'
+            filter.frequency.setValueAtTime(200, ctx.currentTime)
+
+            // Connections
+            osc1.connect(filter)
+            osc2.connect(filter)
+            filter.connect(gain)
+            gain.connect(ctx.destination)
+
+            // Fade in
+            gain.gain.setValueAtTime(0, ctx.currentTime)
+            gain.gain.linearRampToValueAtTime(0.1 * this.volume, ctx.currentTime + 2)
+
+            osc1.start()
+            osc2.start()
+
+            this.bgmOscillators = [osc1, osc2]
+            this.bgmGain = gain
+
+        } catch (e) {
+            console.error('Synthetic BGM failed:', e)
+        }
+    }
+
+    stopBGM() {
+        if (this.bgm) {
+            this.fadeOutAndStop(this.bgm)
+            this.bgm = null
+        }
+        // Stop synthetic
+        this.bgmOscillators.forEach(osc => {
+            try { osc.stop(); osc.disconnect() } catch (e) { }
+        })
+        this.bgmOscillators = []
+        if (this.bgmGain) {
+            this.bgmGain.disconnect()
+            this.bgmGain = null
         }
     }
 
@@ -71,6 +121,12 @@ class SoundManager {
         if (this.isMuted) return
         try {
             const ctx = this.getAudioContext()
+
+            // Auto-resume if suspended (browser autoplay policy)
+            if (ctx.state === 'suspended') {
+                ctx.resume().catch(e => console.warn('Audio resume failed:', e))
+            }
+
             const osc = ctx.createOscillator()
             const gain = ctx.createGain()
 
