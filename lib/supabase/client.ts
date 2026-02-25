@@ -104,6 +104,20 @@ export async function getScenesByStory(storyId: string): Promise<Scene[]> {
     return data || []
 }
 
+export async function getAchievementsByStory(storyId: string): Promise<any[]> {
+    const { data, error } = await supabase
+        .from('achievements')
+        .select('*')
+        .eq('story_id', storyId)
+
+    if (error) {
+        console.error('Error fetching achievements:', error)
+        return []
+    }
+
+    return data || []
+}
+
 // Get public URL for images (supports both story covers and scene images)
 export function getImageUrl(path: string | null, bucket: string = 'scene-images'): string | null {
     if (!path) return null

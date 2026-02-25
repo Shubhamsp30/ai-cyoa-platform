@@ -34,24 +34,20 @@ export default function StoriesPage() {
         loadStories()
     }, [supabase])
 
-
-
-    // ...
-
     const handleSelectStory = (storyId: string) => {
-        soundManager.playTone('click') // Audio Feedback
-        console.log('Selected Story:', storyId)
+        soundManager.playTone('click')
         localStorage.setItem('selected_story_id', storyId)
-        localStorage.removeItem(`story_progress_${storyId}`)
+        // Progress is now persistent (Cloud + Local)
         router.push('/game/play')
     }
 
     if (loading) {
         return (
             <main className={styles.main}>
+                <div className={styles.hudGrid}></div>
                 <div className={styles.loadingContainer}>
                     <div className={styles.spinner}></div>
-                    <p>{labels.loading}</p>
+                    <p className={styles.loadingText}>INITIALIZING ARCHIVES...</p>
                 </div>
             </main>
         )
@@ -59,43 +55,49 @@ export default function StoriesPage() {
 
     return (
         <main className={styles.main}>
-            {/* Animated Background */}
-            <div className={styles.bgAnimation}></div>
+            {/* Tactical Layer: Hex Grid */}
+            <div className={styles.hudGrid}></div>
+
+            {/* Atmospheric Layer: Animated Embers */}
+            <div className={styles.emberContainer}>
+                {[...Array(12)].map((_, i) => (
+                    <div key={i} className={styles.ember}></div>
+                ))}
+            </div>
 
             <div className={styles.container}>
-                {/* Header */}
-                <div className={styles.header}>
+                {/* Tactical Header */}
+                <header className={styles.header}>
                     <div className={styles.authNav}>
-                        {user ? (
-                            <Button variant="outline" size="sm" onClick={() => router.push('/game/profile')}>
-                                👤 Profile
-                            </Button>
-                        ) : (
-                            <Button variant="outline" size="sm" onClick={() => router.push('/login')}>
-                                🔐 Login
-                            </Button>
-                        )}
-                        <div style={{ marginLeft: '1rem' }}>
+                        <div className={styles.tacticalLink} onClick={() => router.push('/')}>
+                            [ BACK TO COMMAND ]
+                        </div>
+                        <div className={styles.navRight}>
+                            {user ? (
+                                <button className={styles.profileBtn} onClick={() => router.push('/game/profile')}>
+                                    WARRIOR ID: {user.email?.split('@')[0].toUpperCase()}
+                                </button>
+                            ) : (
+                                <button className={styles.profileBtn} onClick={() => router.push('/login')}>
+                                    [ DEPLOYMENT LOGIN ]
+                                </button>
+                            )}
                             <LanguageSelector />
                         </div>
                     </div>
 
-                    <div className={styles.decorativeTop}>
-                        <span className={styles.ornament}>⚔️</span>
-                        <div className={styles.divider}></div>
-                        <span className={styles.ornament}>⚔️</span>
+                    <div className={styles.headerContent}>
+                        <div className={styles.archiveStamp}>WAR ARCHIVES // v2.4.0</div>
+                        <h1 className={styles.mainTitle}>{labels.choose_adventure}</h1>
+                        <div className={styles.dataReadout}>
+                            <span className={styles.readoutItem}>SECTOR: SINHAGAD</span>
+                            <span className={styles.readoutSeparator}>|</span>
+                            <span className={styles.readoutItem}>INTEL: {stories.length} ACTIVE MISSIONS</span>
+                        </div>
                     </div>
+                </header>
 
-                    <h1 className={styles.mainTitle}>{labels.choose_adventure}</h1>
-
-                    <div className={styles.taglineContainer}>
-                        <div className={styles.taglineLine}></div>
-                        <p className={styles.subtitle}>{labels.select_story_subtitle}</p>
-                        <div className={styles.taglineLine}></div>
-                    </div>
-                </div>
-
-                {/* Stories Grid */}
+                {/* Stories Grid: Dossier Style */}
                 <div className={styles.storiesGrid}>
                     {stories.map((story) => (
                         <div
@@ -104,43 +106,56 @@ export default function StoriesPage() {
                             onClick={() => handleSelectStory(story.id)}
                             role="button"
                             tabIndex={0}
-                            onKeyPress={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    handleSelectStory(story.id)
-                                }
-                            }}
                         >
-                            {/* Cover Image */}
+                            <div className={styles.cornerBracket + ' ' + styles.tl}></div>
+                            <div className={styles.cornerBracket + ' ' + styles.br}></div>
+
+                            <div className={styles.scanline}></div>
+
+                            {/* Cover Image / Tactical Map */}
                             <div className={styles.coverImage}>
                                 <img
                                     src={story.thumbnail_url ? getImageUrl(story.thumbnail_url, 'story-covers') || '/images/stories/default-cover.png' : '/images/stories/default-cover.png'}
                                     alt={story.title}
                                 />
                                 <div className={styles.imageOverlay}></div>
+                                <div className={styles.mapStatus}>STORY MAP // READY</div>
                             </div>
 
-                            {/* Story Info */}
+                            {/* Story Intel */}
                             <div className={styles.storyInfo}>
-                                <h2 className={styles.storyTitle}>{t(story, 'title')}</h2>
-                                <p className={styles.character}>⚔️ {t(story, 'character_name')}</p>
+                                <div className={styles.cardHeader}>
+                                    <h2 className={styles.storyTitle}>{t(story, 'title')}</h2>
+                                    <div className={styles.dossierSerial}>ID: {story.id.substring(0, 8).toUpperCase()}</div>
+                                </div>
+
+                                <p className={styles.character}>
+                                    <span className={styles.charIcon}>⚔️</span>
+                                    WARRIOR: {t(story, 'character_name').toUpperCase()}
+                                </p>
+
                                 <p className={styles.description}>{t(story, 'description')}</p>
 
                                 <div className={styles.meta}>
-                                    <span className={styles.scenes}>📖 {story.total_scenes} {labels.epic_scenes}</span>
+                                    <span className={styles.scenes}>
+                                        <span className={styles.metaLabel}>CHAPTERS:</span> {story.total_scenes}
+                                    </span>
+                                    <div className={styles.difficultyLevel}>
+                                        {[...Array(3)].map((_, i) => (
+                                            <div key={i} className={styles.diffDot}></div>
+                                        ))}
+                                    </div>
                                 </div>
 
-                                <Button
-                                    size="lg"
+                                <button
+                                    className={styles.playButton}
                                     onClick={(e) => {
-                                        e.stopPropagation(); // Prevent double triggers
+                                        e.stopPropagation();
                                         handleSelectStory(story.id)
                                     }}
-                                    className={styles.playButton}
                                 >
-                                    <span className={styles.buttonIcon}>⚡</span>
-                                    {labels.begin_story}
-                                    <span className={styles.buttonIcon}>⚡</span>
-                                </Button>
+                                    INITIALIZE MISSION
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -148,7 +163,7 @@ export default function StoriesPage() {
 
                 {stories.length === 0 && (
                     <div className={styles.empty}>
-                        <p>🎭 {labels.no_adventures}</p>
+                        <p>[ NO ACTIVE MISSIONS IN THIS SECTOR ]</p>
                     </div>
                 )}
             </div>

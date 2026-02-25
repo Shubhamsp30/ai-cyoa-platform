@@ -1,105 +1,149 @@
-/* AuthForm.module.css */
-.container {
-    background: rgba(10, 10, 25, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+/* AuthForm.module.css - Battle-Hardened HUD */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+.authCard {
+    background: rgba(15, 15, 20, 0.85);
+    backdrop-filter: blur(20px) contrast(1.2);
+    -webkit-backdrop-filter: blur(20px) contrast(1.2);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    border-radius: 20px;
-    padding: 3rem;
+    border-radius: 4px;
+    /* Sharp Gaming Look */
+    padding: 3.5rem;
     width: 100%;
-    max-width: 400px;
+    max-width: 480px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    position: relative;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+    overflow: visible;
+    /* To allow brackets to overflow slightly */
+}
+
+/* Tactical Corner Brackets */
+.authCard::before,
+.authCard::after {
+    content: '';
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #40e0d0;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Top-Left Bracket */
+.authCard::before {
+    top: -5px;
+    left: -5px;
+    border-right: none;
+    border-bottom: none;
+}
+
+/* Bottom-Right Bracket */
+.authCard::after {
+    bottom: -5px;
+    right: -5px;
+    border-left: none;
+    border-top: none;
+}
+
+/* Scanning Line Effect */
+.scanline {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(to right, transparent, rgba(64, 224, 208, 0.5), transparent);
+    z-index: 10;
+    animation: scan 4s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes scan {
+    0% {
+        top: 0%;
+        opacity: 0;
+    }
+
+    5% {
+        opacity: 1;
+    }
+
+    95% {
+        opacity: 1;
+    }
+
+    100% {
+        top: 100%;
+        opacity: 0;
+    }
+}
+
+.header {
+    width: 100%;
+    margin-bottom: 2rem;
+    text-align: center;
 }
 
 .title {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 2rem;
-    background: linear-gradient(135deg, #40e0d0 0%, #ff69b4 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-align: center;
+    font-family: 'Outfit', sans-serif;
+    font-size: 2.75rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 15px rgba(64, 224, 208, 0.3);
+}
+
+.subtitle {
+    display: none;
+    /* Hide if element persists but user requested removal */
 }
 
 .form {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 2rem;
 }
 
 .inputGroup {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .inputGroup label {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
-    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
 }
 
 .inputGroup input {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(20, 20, 25, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 1rem;
+    border-radius: 0;
+    /* Pure sharp look */
+    padding: 1.25rem;
     color: #fff;
     font-size: 1rem;
-    transition: all 0.3s ease;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 3px solid transparent;
 }
 
 .inputGroup input:focus {
     outline: none;
-    border-color: #40e0d0;
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 10px rgba(64, 224, 208, 0.2);
-}
-
-.error {
-    color: #ff2a6d;
-    font-size: 0.9rem;
-    text-align: center;
-    background: rgba(255, 42, 109, 0.1);
-    padding: 0.5rem;
-    border-radius: 4px;
-}
-
-.success {
-    color: #4ade80;
-    font-size: 0.9rem;
-    text-align: center;
-    background: rgba(74, 222, 128, 0.1);
-    padding: 0.5rem;
-    border-radius: 4px;
-    border: 1px solid rgba(74, 222, 128, 0.2);
-}
-
-.submitBtn {
-    width: 100%;
-    margin-top: 1rem;
-}
-
-.toggleBtn {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.5);
-    margin-top: 1.5rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: color 0.3s ease;
-}
-
-.toggleBtn:hover {
-    color: #40e0d0;
-    text-decoration: underline;
+    border-color: rgba(64, 224, 208, 0.4);
+    border-left-color: #40e0d0;
+    background: rgba(64, 224, 208, 0.05);
+    box-shadow: 0 0 30px rgba(64, 224, 208, 0.1);
 }
 
 .passwordWrapper {
@@ -107,29 +151,129 @@
     width: 100%;
 }
 
-.passwordWrapper input {
-    width: 100%;
-    padding-right: 40px;
-    /* Space for icon */
-}
-
 .eyeBtn {
     position: absolute;
-    right: 10px;
+    right: 15px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 1.2rem;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.3);
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: color 0.2s;
+    transition: all 0.3s ease;
 }
 
 .eyeBtn:hover {
     color: #40e0d0;
+}
+
+.error,
+.success {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 0;
+    text-transform: uppercase;
+    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+}
+
+@keyframes shake {
+
+    10%,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20%,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30%,
+    50%,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+
+    40%,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}
+
+.error {
+    color: #ff4d4d;
+    background: rgba(255, 77, 77, 0.05);
+    border: 1px solid rgba(255, 77, 77, 0.2);
+    border-left: 4px solid #ff4d4d;
+}
+
+.success {
+    color: #00ffaa;
+    background: rgba(0, 255, 170, 0.05);
+    border: 1px solid rgba(0, 255, 170, 0.2);
+    border-left: 4px solid #00ffaa;
+}
+
+.submitBtn {
+    width: 100%;
+    margin-top: 2rem;
+    position: relative;
+    overflow: hidden;
+    padding: 1.25rem;
+    background: #40e0d0;
+    border: none;
+    color: #000;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.submitBtn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(64, 224, 208, 0.4);
+    background: #50f0e0;
+}
+
+.submitBtn:active {
+    transform: translateY(-1px);
+}
+
+.footer {
+    margin-top: 2.5rem;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.toggleBtn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.toggleBtn:hover {
+    color: #fff;
+}
+
+.toggleHighlight {
+    color: #40e0d0;
+    font-weight: 700;
+    margin-left: 0.5rem;
 }

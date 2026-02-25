@@ -56,10 +56,10 @@
   --shadow-neon: 0 0 15px rgba(0, 243, 255, 0.4), 0 0 30px rgba(188, 19, 254, 0.2);
   --shadow-text: 0 2px 4px rgba(0, 0, 0, 0.8);
 
-  /* Transitions */
-  --transition-fast: 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  --transition-base: 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  --transition-slow: 800ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Transitions - Calibrated for Snappy Tactical Response */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 * {
@@ -190,25 +190,43 @@ a:hover {
 }
 
 .fade-in {
-  animation: fadeIn 0.8s ease-out forwards;
+  animation: fadeIn 0.3s ease-out forwards;
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-5px);
+  }
+
+  75% {
+    transform: translateX(5px);
+  }
 }
 
 .shake {
-  animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+  animation: shake 0.3s cubic-bezier(.36, .07, .19, .97) both;
   border-color: var(--color-error) !important;
   box-shadow: 0 0 10px var(--color-error);
 }
 
 @keyframes pulseSuccess {
-  0% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(0, 255, 157, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 255, 157, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 157, 0);
+  }
 }
 
 .pulse-success {

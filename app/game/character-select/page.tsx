@@ -46,20 +46,22 @@ export default function CharacterSelectPage() {
                 return
             }
 
-            // Update profile with selected character and starting scene
-            await supabase
+            // Start navigation immediately after triggering update for snappy response
+            const updatePromise = supabase
                 .from('profiles')
                 .update({
                     current_story_id: story.id,
                     current_scene_id: story.starting_scene_id,
                     character_role: selectedCharacter,
+                    current_score: 0,
+                    last_played_at: new Date().toISOString()
                 })
                 .eq('id', user.id)
 
             router.push('/game/play')
+            await updatePromise // Ensure it finishes in background if needed
         } catch (error) {
             console.error('Error starting game:', error)
-        } finally {
             setSaving(false)
         }
     }

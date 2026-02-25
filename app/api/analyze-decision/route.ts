@@ -18,6 +18,13 @@ export async function POST(request: NextRequest) {
             sceneContext
         )
 
+        console.log(`[DECISION ANALYZER] Input: "${userInput}" -> Intent: ${analysis.detected_intent} (Confidence: ${analysis.confidence})`)
+        if (analysis.matched_path) {
+            console.log(`[DECISION ANALYZER] MATCH SUCCESS: Found path with next_scene_id: ${analysis.matched_path.next_scene_id}`)
+        } else {
+            console.log(`[DECISION ANALYZER] MATCH FAILURE: No path found. Reasoning: ${analysis.reasoning}`)
+        }
+
         return NextResponse.json(analysis)
     } catch (error) {
         console.error('Decision analysis error:', error)

@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+'use client'
+import React, { useState, useEffect } from 'react';
 
 interface VirtualKeyboardProps {
     onKeyPress: (char: string) => void;
     onClose: () => void;
-    language: 'hi' | 'mr';
+    language: 'hi' | 'mr' | 'en';
 }
+
+const ENGLISH_KEYS = [
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
+    'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
+    'Z', 'X', 'C', 'V', 'B', 'N', 'M'
+];
 
 const SWAR = ['अ', 'आ', 'इ', 'ई', 'उ', 'ऊ', 'ऋ', 'ए', 'ऐ', 'ओ', 'औ', 'अं', 'अः'];
 const VYANJAN = [
@@ -20,9 +27,18 @@ const MATRAS = [
     'ा', 'ि', 'ी', 'ु', 'ू', 'ृ', 'े', 'ै', 'ो', 'ौ', 'ं', 'ः', '्', '़'
 ];
 const NUMBERS = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+const NUMBERS_EN = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
 export default function VirtualKeyboard({ onKeyPress, onClose, language }: VirtualKeyboardProps) {
-    const [activeTab, setActiveTab] = useState<'swar' | 'vyanjan' | 'matra'>('vyanjan');
+    const [activeTab, setActiveTab] = useState<'swar' | 'vyanjan' | 'matra' | 'english'>(
+        language === 'en' ? 'english' : 'vyanjan'
+    );
+
+    // Sync tab with language changes
+    useEffect(() => {
+        if (language === 'en') setActiveTab('english');
+        else if (activeTab === 'english') setActiveTab('vyanjan');
+    }, [language]);
 
     const handleKeyPress = (char: string) => {
         // Vibrate on mobile/supported devices for feedback
@@ -53,8 +69,8 @@ export default function VirtualKeyboard({ onKeyPress, onClose, language }: Virtu
         <div className="virtual-keyboard-container">
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    {language === 'hi' ? 'हिंदी कीबोर्ड' : 'मराठी कीबोर्ड'}
+                <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#40e0d0', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    {language === 'hi' ? 'हिंदी कीबोर्ड' : (language === 'mr' ? 'मराठी कीबोर्ड' : 'ENGLISH KEYBOARD')}
                 </h3>
                 <button
                     onClick={onClose}
@@ -78,31 +94,47 @@ export default function VirtualKeyboard({ onKeyPress, onClose, language }: Virtu
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: '8px', marginBottom: '15px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '12px' }}>
-                {['swar', 'vyanjan', 'matra'].map((tab) => (
+                {language === 'en' ? (
                     <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab as any)}
-                        style={{
-                            flex: 1,
-                            padding: '10px 0',
-                            borderRadius: '8px',
-                            border: 'none',
-                            background: activeTab === tab ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-                            color: activeTab === tab ? '#fbbf24' : '#9ca3af',
-                            cursor: 'pointer',
-                            fontWeight: '600',
-                            fontSize: '0.9rem',
-                            transition: 'all 0.2s',
-                            boxShadow: activeTab === tab ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
-                        }}
+                        className="tab-button active"
+                        style={{ flex: 1, padding: '10px 0', borderRadius: '8px', border: 'none', background: 'rgba(64, 224, 208, 0.2)', color: '#40e0d0', fontWeight: 'bold' }}
                     >
-                        {tab === 'swar' ? 'Swar' : tab === 'vyanjan' ? 'Vyanjan' : 'Matra'}
+                        QWERTY
                     </button>
-                ))}
+                ) : (
+                    ['swar', 'vyanjan', 'matra'].map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab as any)}
+                            style={{
+                                flex: 1,
+                                padding: '10px 0',
+                                borderRadius: '8px',
+                                border: 'none',
+                                background: activeTab === tab ? 'rgba(64, 224, 208, 0.2)' : 'transparent',
+                                color: activeTab === tab ? '#40e0d0' : '#9ca3af',
+                                cursor: 'pointer',
+                                fontWeight: '600',
+                                fontSize: '0.8rem',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            {tab.toUpperCase()}
+                        </button>
+                    ))
+                )}
             </div>
 
             {/* Content Area */}
             <div style={{ maxHeight: '240px', overflowY: 'auto', paddingRight: '5px' }} className="custom-scrollbar">
+                {activeTab === 'english' && (
+                    <>
+                        {renderGrid(ENGLISH_KEYS)}
+                        <div style={{ marginTop: '15px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px' }}>
+                            {renderGrid(NUMBERS_EN)}
+                        </div>
+                    </>
+                )}
                 {activeTab === 'swar' && (
                     <>
                         {renderGrid(SWAR)}
@@ -142,21 +174,25 @@ export default function VirtualKeyboard({ onKeyPress, onClose, language }: Virtu
 
             <style jsx>{`
                 .virtual-keyboard-container {
-                    position: fixed;
-                    bottom: 20px;
-                    right: 20px;
-                    width: calc(100% - 40px);
-                    max-width: 480px;
-                    background: rgba(15, 15, 20, 0.95);
-                    backdrop-filter: blur(20px);
-                    -webkit-backdrop-filter: blur(20px);
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    border-radius: 20px;
-                    padding: 20px;
-                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-                    z-index: 9999;
-                    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                    color: white;
+                    position: fixed !important;
+                    bottom: 30px !important;
+                    right: 30px !important;
+                    width: calc(100% - 60px) !important;
+                    max-width: 500px !important;
+                    background: #0a0a0f !important;
+                    backdrop-filter: blur(40px) !important;
+                    -webkit-backdrop-filter: blur(40px);
+                    border: 2px solid #40e0d0 !important;
+                    border-radius: 20px !important;
+                    padding: 24px !important;
+                    box-shadow: 0 0 100px rgba(0, 0, 0, 1), 
+                                0 0 40px rgba(64, 224, 208, 0.4) !important;
+                    z-index: 2147483647 !important; /* MAXIMUM POSSIBLE D-INDEX */
+                    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                    color: white !important;
+                    pointer-events: auto !important;
+                    user-select: none;
+                    transform: none !important; /* Force out of perspective */
                 }
 
                 @keyframes slideUp {

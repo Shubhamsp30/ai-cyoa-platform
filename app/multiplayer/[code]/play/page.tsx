@@ -7,6 +7,7 @@ import { getStoryById, getSceneById, Story, Scene, getImageUrl } from '@/lib/sup
 import { useLobby } from '@/hooks/useLobby'
 import Button from '@/components/ui/Button'
 import AnimatedText from '@/components/ui/AnimatedText'
+import { useLanguage } from '@/contexts/LanguageContext'
 import styles from '@/app/game/play/play.module.css' // Reuse styles
 import { soundManager } from '@/lib/audio/SoundManager'
 
@@ -115,14 +116,19 @@ export default function MPGamePage({ params }: { params: { code: string } }) {
         syncScene()
     }, [lobby?.current_scene_id, story])
 
+    const { language } = useLanguage()
+
     useEffect(() => {
         if (currentScene && !currentScene.is_ending) {
-            // Speak
-            setTimeout(() => {
-                soundManager.speak(currentScene.content)
-            }, 500)
+            // Speech Filter: Only auto-speak for Latin/English
+            const supportedLanguages = ['en', 'hi-en', 'mr-en'];
+            if (supportedLanguages.includes(language)) {
+                setTimeout(() => {
+                    soundManager.speak(currentScene.content, language)
+                }, 500)
+            }
         }
-    }, [currentScene])
+    }, [currentScene, language])
 
     const handlePropose = async () => {
         if (!userInput.trim()) return

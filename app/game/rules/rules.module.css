@@ -1,0 +1,214 @@
+.main {
+    min-height: 100vh;
+    background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+    color: #ffffff;
+    padding: 2rem;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    position: relative;
+    overflow-x: hidden;
+}
+
+.vignette {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, transparent 20%, rgba(0, 0, 0, 0.8) 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(64, 224, 208, 0.3);
+}
+
+.titleWrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    letter-spacing: -2px;
+    background: linear-gradient(45deg, #40e0d0, #ff0099);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.subtitle {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.section {
+    margin-bottom: 5rem;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+}
+
+.iconBox {
+    width: 48px;
+    height: 48px;
+    background: rgba(64, 224, 208, 0.1);
+    border: 1px solid rgba(64, 224, 208, 0.3);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 0 20px rgba(64, 224, 208, 0.1);
+}
+
+.sectionTitle {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fbbf24;
+}
+
+.rulesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+}
+
+.ruleCard {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 2rem;
+    border-radius: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.ruleCard:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(64, 224, 208, 0.3);
+    transform: translateY(-5px);
+}
+
+.ruleNumber {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 6rem;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.03);
+    pointer-events: none;
+}
+
+.ruleTitle {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #40e0d0;
+    margin-bottom: 1rem;
+}
+
+.ruleText {
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.7;
+    margin: 0;
+}
+
+.scoreBonus {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: rgba(251, 191, 36, 0.1);
+    border-radius: 8px;
+    color: #fbbf24;
+    display: inline-block;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.achievementGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.achievementCard {
+    background: rgba(64, 224, 208, 0.02);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(64, 224, 208, 0.15);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    display: flex;
+    gap: 1.2rem;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.achievementCard:hover {
+    background: rgba(64, 224, 208, 0.05);
+    border-color: rgba(64, 224, 208, 0.4);
+    box-shadow: 0 0 30px rgba(64, 224, 208, 0.1);
+}
+
+.achIcon {
+    font-size: 2.5rem;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+}
+
+.achInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.achTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 0.2rem;
+}
+
+.achDesc {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.4;
+}
+
+.xpBadge {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #40e0d0;
+    letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2rem;
+    }
+
+    .title {
+        font-size: 2.5rem;
+    }
+}

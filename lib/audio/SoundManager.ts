@@ -194,8 +194,7 @@ class SoundManager {
                 osc.stop(now + 1.0)
             }
             else if (type === 'scene_transition') {
-                // White noise burst / "Whoosh"
-                // We need a buffer source for noise typically, but let's use a quick slide
+                // ... same implementation ...
                 osc.type = 'triangle'
                 osc.frequency.setValueAtTime(100, now)
                 osc.frequency.exponentialRampToValueAtTime(800, now + 0.3)
@@ -206,6 +205,17 @@ class SoundManager {
 
                 osc.start(now)
                 osc.stop(now + 0.3)
+            }
+            else if (type === 'click') {
+                // ... telex blip ...
+                osc.type = 'square'
+                osc.frequency.setValueAtTime(1200, now)
+
+                gain.gain.setValueAtTime(0.05 * this.volume, now)
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05)
+
+                osc.start(now)
+                osc.stop(now + 0.05)
             }
 
         } catch (e) {
@@ -244,6 +254,13 @@ class SoundManager {
             console.warn('SoundManager: Speak blocked because voice disabled.')
             return
         }
+        // Selective Speech Filter: Only allow English and Phonetic Latin scripts
+        const supportedLanguages = ['en', 'hi-en', 'mr-en'];
+        if (!supportedLanguages.includes(language)) {
+            console.warn(`SoundManager: Speak blocked. Language [${language}] is not supported for AI narration.`);
+            return;
+        }
+
         if (!this.synth) {
             console.error('SoundManager: No SpeechSynthesis available.')
             return
@@ -301,6 +318,16 @@ class SoundManager {
         utterance.onerror = (e) => console.error('SoundManager: Speech error', e)
 
         this.synth.speak(utterance)
+    }
+
+    stopSpeaking() {
+        if (this.synth) {
+            this.synth.cancel()
+        }
+    }
+
+    get isSpeaking() {
+        return this.synth ? this.synth.speaking : false
     }
 
     stopAll() {

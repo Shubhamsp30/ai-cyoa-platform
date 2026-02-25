@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { soundManager } from '@/lib/audio/SoundManager'
 
 interface AnimatedTextProps {
     text: string
@@ -13,6 +14,17 @@ export default function AnimatedText({ text, delay = 60 }: AnimatedTextProps) {
     useEffect(() => {
         setWords(text.split(' '))
     }, [text])
+
+    useEffect(() => {
+        if (words.length > 0) {
+            // Play a soft typewriter blip for each word
+            words.forEach((_, index) => {
+                setTimeout(() => {
+                    soundManager.playTone('click')
+                }, index * delay)
+            })
+        }
+    }, [words, delay])
 
     return (
         <>

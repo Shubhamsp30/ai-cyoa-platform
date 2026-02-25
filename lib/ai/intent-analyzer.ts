@@ -33,31 +33,28 @@ The player has entered: "${userInput}"
 
 Valid decision paths for this scene:
 ${validPaths.map((path, idx) => `
-Path ${idx + 1} (${path.outcome_type}):
-- Intent keywords: ${path.intent_keywords.join(', ')}
-- Message: ${path.success_message || path.failure_message || 'Continue'}
+- Index ${idx} (${path.outcome_type}):
+  - Keywords: ${path.intent_keywords.join(', ')}
+  - Intent: ${path.success_message || path.failure_message || 'Proceed to next phase'}
 `).join('\n')}
 
 **CRITICAL INSTRUCTIONS**:
-1. **Language Support**: The player may write in **Marathi**, **Hindi**, or **English**. You must support all three.
-2. **Semantic Matching**: Do NOT look for exact keywords. Look for the **Core Intent**.
-   - Example: If the player says "I will bring back the fort at any cost!", and the path is "Attack/Accept Mission", MATCH IT.
-   - Example: "I am not ready" matches "Refuse/Wait".
-3. **Dramatic Text**: Players often roleplay with long, dramatic sentences. Ignore the fluff and find the action verb.
-4. **Cultural Nuance**: phrases like "Jeev gela tari chalel" (even if I die) or "Raiba" indicate determination/Acceptance.
+1. **Language Intelligence**: The player may enter commands in **Marathi**, **Hindi**, or **English**. You must analyze the meaning, not just words.
+2. **Extreme Generosity**: If the player's intent matches the *general idea* of a path, MATCH IT. Roleplaying, dramatic flair, and long sentences should be analyzed for the core action.
+3. **Indexing Precision**: Use the **0-based Index** provided above. If you match "Index 0", the "matched_path_index" MUST be 0.
+4. **Cultural Context**: Tanaji Malusare is a legendary hero. Phrases indicating bravery, sacrifice, or storming the fort should be matched to aggressive/success paths.
 
 Analyze the player's input and determine:
-1. What is the player's intent?
-2. Which path (if any) does it match best?
-3. How confident are you in this match (0-1)?
-4. Why did you make this decision?
+1. What is the core action/intent?
+2. Which Index (0, 1, etc.) matches best?
+3. Confidence (0.0 to 1.0).
 
 Respond in JSON format:
 {
-  "detected_intent": "brief description of what the player wants to do",
-  "matched_path_index": number or null, // 0-based index of the matched path, or null if no match
-  "confidence": number between 0 and 1,
-  "reasoning": "explanation of your decision"
+  "detected_intent": "brief summary",
+  "matched_path_index": number or null, 
+  "confidence": number,
+  "reasoning": "why this index?"
 }`
 
     try {
@@ -80,7 +77,7 @@ Respond in JSON format:
             analysis = JSON.parse(response.choices[0].message.content || '{}')
         } else if (apiKey.startsWith('AIza')) {
             const genAI = new GoogleGenerativeAI(apiKey)
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash", generationConfig: { responseMimeType: "application/json" } })
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest", generationConfig: { responseMimeType: "application/json" } })
             const result = await model.generateContent(systemPrompt)
             const text = result.response.text()
             analysis = JSON.parse(text)
@@ -96,10 +93,13 @@ Respond in JSON format:
 
         // ...
 
-        // Match the path
+        // Match the path with extra safety for index types
+        const rawIndex = analysis.matched_path_index ?? analysis.matched_index
+        const index = typeof rawIndex === 'string' ? parseInt(rawIndex) : rawIndex
+
         const matchedPath =
-            (analysis.matched_path_index !== null && analysis.matched_path_index !== undefined)
-                ? validPaths[analysis.matched_path_index]
+            (index !== null && index !== undefined && !isNaN(index) && index >= 0 && index < validPaths.length)
+                ? validPaths[index]
                 : null
 
         // ... (message generation)
@@ -109,30 +109,35 @@ Respond in JSON format:
             matched_path: matchedPath,
             confidence: analysis.confidence || 0,
             reasoning: analysis.reasoning || '',
-            message: matchedPath ? (matchedPath.success_message || matchedPath.failure_message || 'You proceed...') : (analysis.message || 'Invalid choice'),
+            message: matchedPath
+                ? (matchedPath.success_message || analysis.message || 'Mission Objective Updated.')
+                : (analysis.message || 'Tactical Alignment Failed. Try a different command.'),
         }
 
     } catch (error) {
         console.error('AI analysis error:', error)
 
-        // JOINED LOGIC FOR FALLBACK
-        // Improve fallback to check for any token match
+        // FALLBACK: Robust Keyword & Phrase Matching
         const lowerInput = userInput.toLowerCase()
-        const inputTokens = lowerInput.split(/[\s,!.?]+/)
+        const inputTokens = lowerInput.split(/[\s,!.?]+/).filter(t => t.length > 2)
 
         let bestMatch: ValidPath | null = null
         let bestScore = 0
 
         for (const path of validPaths) {
-            // Check occurrences of keywords in input
             let currentScore = 0
-            for (const keyword of path.intent_keywords) {
-                const lowerKeyword = keyword.toLowerCase()
-                // 1. Direct substring match (good for short keywords)
-                if (lowerInput.includes(lowerKeyword)) currentScore += 2
+            const keywords = path.intent_keywords || []
 
-                // 2. Token match (good for robustness)
-                if (inputTokens.includes(lowerKeyword)) currentScore += 1
+            for (const keyword of keywords) {
+                const lowerKeyword = keyword.toLowerCase()
+
+                // 1. Phrasal match (Strong)
+                if (lowerInput.includes(lowerKeyword)) currentScore += 3
+
+                // 2. Token overlap (Good)
+                if (inputTokens.some(token => lowerKeyword.includes(token) || token.includes(lowerKeyword))) {
+                    currentScore += 1
+                }
             }
 
             if (currentScore > bestScore) {
@@ -143,15 +148,12 @@ Respond in JSON format:
 
         return {
             detected_intent: userInput,
-            matched_path: bestScore > 0 ? bestMatch : null,
-            confidence: bestScore > 0 ? 0.6 : 0,
-            reasoning: 'Fallback keyword matching used due to AI error',
-            message:
-                bestMatch && bestScore > 0
-                    ? bestMatch.success_message ||
-                    bestMatch.failure_message ||
-                    'You proceed...'
-                    : 'Your decision does not match any available paths. Please try again.',
+            matched_path: bestScore >= 2 ? bestMatch : null,
+            confidence: bestScore >= 2 ? 0.5 : 0,
+            reasoning: 'Fallback heuristic matching enabled.',
+            message: (bestMatch && bestScore >= 2)
+                ? bestMatch.success_message || 'Command accepted via fallback.'
+                : 'Invalid command. Ensure your intent aligns with the mission objectives.',
         }
     }
 }

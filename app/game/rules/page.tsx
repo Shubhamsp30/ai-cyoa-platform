@@ -1,97 +1,141 @@
 'use client'
 
 import React from 'react'
-import Button from '@/components/ui/Button'
 import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import Button from '@/components/ui/Button'
+import styles from './rules.module.css'
 
 export default function RulesPage() {
     const router = useRouter()
 
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.05,
+                delayChildren: 0.05
+            }
+        }
+    }
+
+    const itemVariants = {
+        hidden: { y: 20, opacity: 0 },
+        visible: {
+            y: 0,
+            opacity: 1,
+            transition: { duration: 0.3, ease: "easeOut" } as any
+        }
+    }
+
     return (
-        <main style={{
-            minHeight: '100vh',
-            background: 'linear-gradient(to bottom, #0f172a, #000)',
-            color: '#fff',
-            padding: '4rem 2rem',
-            fontFamily: "'Inter', sans-serif"
-        }}>
-            <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
-                    <h1 style={{ fontSize: '3rem', color: '#40e0d0', margin: 0 }}>Game Rules & Guide</h1>
-                    <Button variant="outline" onClick={() => router.back()}>← Back</Button>
-                </div>
+        <main className={styles.main}>
+            <div className={styles.vignette}></div>
 
-                {/* How to Play Section */}
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '2rem', borderRadius: '1rem', marginBottom: '3rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <h2 style={{ color: '#fbbf24', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span>📜</span> How to Play
-                    </h2>
-
-                    <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
-                        <div>
-                            <h3 style={{ color: '#40e0d0', marginBottom: '0.5rem' }}>1. Choose Your Path</h3>
-                            <p style={{ color: '#cbd5e1', lineHeight: '1.6' }}>
-                                Every scene presents a challenge. Type your action or choice into the box.
-                                The AI analyzes your intent and decides the outcome.
-                            </p>
-                        </div>
-                        <div>
-                            <h3 style={{ color: '#40e0d0', marginBottom: '0.5rem' }}>2. Scoring & Streaks</h3>
-                            <p style={{ color: '#cbd5e1', lineHeight: '1.6' }}>
-                                +20 Points for every correct decision.<br />
-                                -5 Points for mistakes.<br />
-                                <strong>+50 Bonus Points</strong> for a "Perfect Run" (0 mistakes).
-                            </p>
-                        </div>
-                        <div>
-                            <h3 style={{ color: '#40e0d0', marginBottom: '0.5rem' }}>3. Multiplayer</h3>
-                            <p style={{ color: '#cbd5e1', lineHeight: '1.6' }}>
-                                Join a lobby with a friend. Vote on decisions together.
-                                Majority wins, or the Host decides in a tie!
-                            </p>
-                        </div>
+            <motion.div
+                className={styles.container}
+                initial="hidden"
+                animate="visible"
+                variants={containerVariants}
+            >
+                {/* Tactical Header */}
+                <header className={styles.header}>
+                    <div className={styles.titleWrapper}>
+                        <span className={styles.subtitle}>Classification: Top Secret // Operative Guidelines</span>
+                        <h1 className={styles.title}>Rules & Achievements</h1>
                     </div>
-                </div>
+                    <Button variant="outline" onClick={() => router.back()}>
+                        [ EXIT_TO_MAIN ]
+                    </Button>
+                </header>
 
-                {/* Achievements Section */}
-                <div>
-                    <h2 style={{ color: '#fbbf24', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span>🏆</span> Achievements
-                    </h2>
-                    <p style={{ color: '#94a3b8', marginBottom: '2rem' }}>
-                        Prove your worth by unlocking these legendary titles.
-                    </p>
+                {/* Rules Section */}
+                <section className={styles.section}>
+                    <div className={styles.sectionHeader}>
+                        <div className={styles.iconBox}>📜</div>
+                        <h2 className={styles.sectionTitle}>Mission Protocol</h2>
+                    </div>
 
-                    <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-                        {ACHIEVEMENTS.map((ach) => (
-                            <div key={ach.id} style={{
-                                background: 'rgba(64, 224, 208, 0.05)',
-                                padding: '1.5rem',
-                                borderRadius: '0.8rem',
-                                border: '1px solid rgba(64, 224, 208, 0.2)',
-                                transition: 'transform 0.2s'
-                            }}>
-                                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{ach.icon}</div>
-                                <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.3rem', color: '#fff' }}>{ach.title}</h3>
-                                <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>{ach.desc}</p>
-                            </div>
+                    <div className={styles.rulesGrid}>
+                        {RULES.map((rule, index) => (
+                            <motion.div
+                                key={index}
+                                className={styles.ruleCard}
+                                variants={itemVariants}
+                                whileHover={{ scale: 1.02 }}
+                            >
+                                <span className={styles.ruleNumber}>{index + 1}</span>
+                                <h3 className={styles.ruleTitle}>{rule.title}</h3>
+                                <p className={styles.ruleText}>{rule.text}</p>
+                                {rule.bonus && <div className={styles.scoreBonus}>{rule.bonus}</div>}
+                            </motion.div>
                         ))}
                     </div>
-                </div>
-            </div>
+                </section>
+
+                {/* Achievements Section */}
+                <section className={styles.section}>
+                    <div className={styles.sectionHeader}>
+                        <div className={styles.iconBox}>🏆</div>
+                        <h2 className={styles.sectionTitle}>Hall of Legends</h2>
+                    </div>
+
+                    <div className={styles.achievementGrid}>
+                        {ACHIEVEMENTS.map((ach) => (
+                            <motion.div
+                                key={ach.id}
+                                className={styles.achievementCard}
+                                variants={itemVariants}
+                                whileHover={{ x: 10 }}
+                            >
+                                <div className={styles.achIcon}>{ach.icon}</div>
+                                <div className={styles.achInfo}>
+                                    <h3 className={styles.achTitle}>{ach.title}</h3>
+                                    <p className={styles.achDesc}>{ach.desc}</p>
+                                    <div className={styles.xpBadge}>+{ach.xp} XP REWARD</div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                </section>
+            </motion.div>
         </main>
     )
 }
 
+const RULES = [
+    {
+        title: 'Tactical Intent',
+        text: 'Every scene presents a narrative challenge. Type your intent into the console. The AI specializes in "generous matching"—it understands your semantic meaning regardless of the language (Hindi, Marathi, or English).',
+        bonus: null
+    },
+    {
+        title: 'Combat Scoring',
+        text: 'Each successful tactical decision yields +20 points. Incorrect decisions or "mistakes" result in a -5 point deduction. Precision is everything on the battlefield.',
+        bonus: '+50 PERFECT RUN BONUS'
+    },
+    {
+        title: 'Multiplayer Synergy',
+        text: 'Deploy to the mission zone with allies. All participants vote on the best tactical path. Majority consensus drives the narrative, ensuring collective strategic success.',
+        bonus: 'BATTLE WITH ALLIES'
+    },
+    {
+        title: 'Legendary Status',
+        text: 'Complete missions and make decisive tactical strikes to earn XP. High-performance operatives unlock permanent titles in the global Trophy Cabinet.',
+        bonus: 'EARN XP REWARDS'
+    }
+]
+
 const ACHIEVEMENTS = [
-    { id: 1, title: 'Strategic Mind', icon: '🧠', desc: 'Make 5 correct choices in a row.' },
-    { id: 2, title: 'Sinhagad Conqueror', icon: '🏰', desc: 'Successfully complete the Siege of Sinhagad story.' },
-    { id: 3, title: 'Peaceful Diplomat', icon: '🕊️', desc: 'Choose a non-violent solution when available.' },
-    { id: 4, title: 'Warrior\'s Spirit', icon: '⚔️', desc: 'Choose to fight and defend your honor.' },
-    { id: 5, title: 'Cliff Climber', icon: '🦎', desc: 'Scale the steep cliffs using the Ghorpad strategy.' },
-    { id: 6, title: 'Udaybhan Slayer', icon: '💀', desc: 'Defeat the heavily armored Udaybhan Rathod.' },
-    { id: 7, title: 'High Scorer', icon: '🌟', desc: 'Achieve a score of over 1000 points in a single run.' },
-    { id: 8, title: 'Baji\'s Volunteer', icon: '🙋‍♂️', desc: 'Volunteer for the dangerous rear-guard mission.' },
-    { id: 9, title: 'The Iron Wall', icon: '🛡️', desc: 'Hold the pass at Pavan Khind against all odds.' },
-    { id: 10, title: 'Perfect Legend', icon: '💎', desc: 'Complete a story with 0 mistakes.' },
+    { id: 1, title: 'Strategic Mind', icon: '🧠', desc: 'Maintain a 5-move correct decision streak.', xp: 200 },
+    { id: 2, title: 'Sinhagad Conqueror', icon: '🏰', desc: 'Secure the fortress and complete the Tanaji mission.', xp: 500 },
+    { id: 3, title: 'Peaceful Diplomat', icon: '🕊️', desc: 'Secure an objective without shedding blood.', xp: 150 },
+    { id: 4, title: 'Warrior\'s Spirit', icon: '⚔️', desc: 'Neutralize threats through direct combat excellence.', xp: 150 },
+    { id: 5, title: 'Ghorpad Mastery', icon: '🦎', desc: 'Scale the vertical cliffs of Sinhagad with Yashwanti.', xp: 150 },
+    { id: 6, title: 'Udaybhan Slayer', icon: '💀', desc: 'Defeat the Mughal commander in single combat.', xp: 300 },
+    { id: 7, title: 'High Scorer', icon: '🌟', desc: 'Achieve a mission score exceeding 1000 points.', xp: 200 },
+    { id: 8, title: 'Baji\'s Volunteer', icon: '🙋‍♂️', desc: 'Accept the suicide mission to hold Pavankhind.', xp: 250 },
+    { id: 9, title: 'The Iron Wall', icon: '🛡️', desc: 'Hold the pass at Pavan Khind against the Bijapuri tide.', xp: 400 },
+    { id: 10, title: 'Perfect Legend', icon: '💎', desc: 'Complete an entire mission with Zero mistakes.', xp: 750 },
 ]

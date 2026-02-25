@@ -1,87 +1,102 @@
-
 'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/create-browser-client'
-import Button from '@/components/ui/Button'
 import styles from './AuthForm.module.css'
 
 export default function AuthForm() {
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [username, setUsername] = useState('')
+    const router = useRouter()
+    const supabase = createClient()
     const [isLogin, setIsLogin] = useState(true)
+    const [email, setEmail] = useState('')
+    const [username, setUsername] = useState('')
+    const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
     const [showPassword, setShowPassword] = useState(false)
-    const router = useRouter()
-    const supabase = createClient()
 
-    const handleAuth = async (e: React.FormEvent) => {
+    async function handleAuth(e: React.FormEvent) {
         e.preventDefault()
+        console.log('Starting handleAuth...', { isLogin, email, username: !isLogin ? username : 'N/A' })
         setLoading(true)
         setError(null)
         setSuccessMessage(null)
 
         try {
             if (isLogin) {
+                console.log('Attempting Login...')
                 let signInEmail = email
 
-                // If input doesn't look like an email, assume it's a username and try to resolve it
+                // Handle username login resolution
                 if (!email.includes('@')) {
+                    console.log('Login with username detected, looking up email...')
                     const { data: profile, error: profileError } = await supabase
                         .from('profiles')
                         .select('email')
-                        .ilike('username', email) // Case-insensitive lookup
+                        .ilike('username', email)
                         .single()
 
                     if (profileError || !profile) {
+                        console.error('Username resolution error:', profileError)
                         throw new Error('Username not found')
                     }
+                    console.log('Username resolved to email:', profile.email)
                     signInEmail = profile.email
                 }
 
-                const { error } = await supabase.auth.signInWithPassword({
+                const { data: signInData, error } = await supabase.auth.signInWithPassword({
                     email: signInEmail,
                     password,
                 })
+                console.log('SignIn Response:', { user: signInData.user, session: !!signInData.session, error })
                 if (error) throw error
-                router.push('/')
-                router.refresh()
+
+                // Hard redirect for session reliability
+                window.location.href = '/'
             } else {
+                console.log('Attempting SignUp...')
                 const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
-                        emailRedirectTo: `${location.origin}/auth/callback`,
+                        emailRedirectTo: `${window.location.origin}/auth/callback`,
                         data: {
                             username: username
                         }
                     },
                 })
+                console.log('SignUp Response:', { user: data.user, session: !!data.session, error })
                 if (error) throw error
-                // Auto-confirm should log them in immediately, but if not:
+
                 if (data.session) {
-                    router.push('/')
-                    router.refresh()
+                    window.location.href = '/'
                 } else if (data.user && !data.session) {
-                    // Switch to login mode and show success message
                     setIsLogin(true)
-                    setSuccessMessage('Account created! Please check your email to verify your account before logging in.')
+                    setSuccessMessage('Account created! Please check your email inbox to verify your account before you can sign in.')
                 }
             }
         } catch (error: any) {
-            setError(error.message)
+            console.error('handleAuth caught error:', error)
+            if (error.message === 'Invalid login credentials') {
+                setError('Invalid credentials. If you just signed up, please make sure you verified your email link first.')
+            } else {
+                setError(error.message)
+            }
         } finally {
             setLoading(false)
         }
     }
 
     return (
-        <div className={styles.container}>
-            <h2 className={styles.title}>{isLogin ? 'Welcome Back' : 'Create Account'}</h2>
+        <div className={styles.authCard}>
+            <div className={styles.scanline}></div>
+            <div className={styles.header}>
+                <h2 className={styles.title}>
+                    {isLogin ? 'Welcome Warrior' : 'Join the Resistance'}
+                </h2>
+            </div>
 
             <form onSubmit={handleAuth} className={styles.form}>
                 {!isLogin && (
@@ -91,7 +106,7 @@ export default function AuthForm() {
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            placeholder="HeroName"
+                            placeholder="Your warrior name"
                             required
                         />
                     </div>
@@ -103,16 +118,13 @@ export default function AuthForm() {
                         type={isLogin ? "text" : "email"}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder={isLogin ? "HeroName or you@example.com" : "you@example.com"}
+                        placeholder={isLogin ? "Warrior ID or Email" : "your@email.com"}
                         required
                     />
                 </div>
 
                 <div className={styles.inputGroup}>
-                    <label>
-                        Password
-                        {!isLogin && <span style={{ fontSize: '0.7rem', color: '#aaa', marginLeft: '8px' }}>(min 6 chars)</span>}
-                    </label>
+                    <label>Password {!isLogin && '(Min 6 chars)'}</label>
                     <div className={styles.passwordWrapper}>
                         <input
                             type={showPassword ? "text" : "password"}
@@ -120,33 +132,36 @@ export default function AuthForm() {
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="••••••••"
                             required
-                            minLength={6}
                         />
                         <button
                             type="button"
                             className={styles.eyeBtn}
                             onClick={() => setShowPassword(!showPassword)}
-                            title={showPassword ? "Hide Password" : "Show Password"}
                         >
                             {showPassword ? '🙈' : '👁️'}
                         </button>
                     </div>
                 </div>
 
-                {error && <p className={styles.error}>{error}</p>}
-                {successMessage && <p className={styles.success}>{successMessage}</p>}
+                {error && <div className={styles.error}>{error}</div>}
+                {successMessage && <div className={styles.success}>{successMessage}</div>}
 
-                <Button type="submit" disabled={loading} className={styles.submitBtn}>
-                    {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
-                </Button>
+                <button type="submit" className={styles.submitBtn} disabled={loading}>
+                    <span className={styles.btnText}>{loading ? 'PROCESSING...' : (isLogin ? 'SIGN IN' : 'SIGN UP')}</span>
+                </button>
             </form>
 
-            <button
-                onClick={() => setIsLogin(!isLogin)}
-                className={styles.toggleBtn}
-            >
-                {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
-            </button>
+            <div className={styles.footer}>
+                <button
+                    onClick={() => setIsLogin(!isLogin)}
+                    className={styles.toggleBtn}
+                >
+                    {isLogin ? "Don't have an account?" : "Already have an account?"}
+                    <span className={styles.toggleHighlight}>
+                        {isLogin ? 'Sign Up' : 'Sign In'}
+                    </span>
+                </button>
+            </div>
         </div>
     )
 }

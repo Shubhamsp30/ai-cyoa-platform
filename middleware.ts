@@ -17,6 +17,7 @@ export async function middleware(request: NextRequest) {
                     return request.cookies.get(name)?.value
                 },
                 set(name: string, value: string, options: CookieOptions) {
+                    console.log(`Middleware: Setting cookie ${name}`)
                     request.cookies.set({
                         name,
                         value,
@@ -34,6 +35,7 @@ export async function middleware(request: NextRequest) {
                     })
                 },
                 remove(name: string, options: CookieOptions) {
+                    console.log(`Middleware: Removing cookie ${name}`)
                     request.cookies.set({
                         name,
                         value: '',
@@ -53,8 +55,9 @@ export async function middleware(request: NextRequest) {
             },
         }
     )
-
+    console.log('Middleware Path:', request.nextUrl.pathname)
     const { data: { user } } = await supabase.auth.getUser()
+    console.log('Middleware User:', user?.id || 'null')
 
     // Protected routes pattern (including root)
     // We want to protect everything EXCEPT auth routes, static assets, and specific public pages
@@ -64,11 +67,13 @@ export async function middleware(request: NextRequest) {
 
     // If user is not signed in and the current path is not public, redirect the user to /login
     if (!user && !isPublicPath) {
+        console.log('Middleware: Redirecting to /login (no user)')
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
     // If user is signed in and access login/register, redirect to /game/stories
     if (user && (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register'))) {
+        console.log('Middleware: Redirecting to /game/stories (user logged in)')
         return NextResponse.redirect(new URL('/game/stories', request.url))
     }
 

@@ -3,24 +3,29 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/create-browser-client'
-import { getStoryById, getSceneById, Story, Scene, getImageUrl } from '@/lib/supabase/client'
+import { getStoryById, getSceneById, Story, Scene, getImageUrl, getAchievementsByStory } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
-import Card from '@/components/ui/Card'
 import AnimatedText from '@/components/ui/AnimatedText'
 import styles from './play.module.css'
 import AudioControls from '@/components/ui/AudioControls'
 import AchievementToast from '@/components/ui/AchievementToast'
+import WeatherLayer from '@/components/game/WeatherLayer'
 import { soundManager } from '@/lib/audio/SoundManager'
-import { Language, useLanguage } from '@/contexts/LanguageContext'
-import VirtualKeyboard from '@/components/VirtualKeyboard';
+import { useLanguage } from '@/contexts/LanguageContext'
+import VirtualKeyboard from '@/components/VirtualKeyboard'
 import LanguageSelector from '@/components/ui/LanguageSelector'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function PlayPage() {
     const router = useRouter()
     const supabase = createClient()
-    const [showKeyboard, setShowKeyboard] = useState(false);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [showKeyboard, setShowKeyboard] = useState(false)
+
+    // Debug Toggle
+    const toggleKeyboard = () => {
+        console.log("TACTICAL: Keyboard Toggle Requested. Current State:", !showKeyboard);
+        setShowKeyboard(prev => !prev);
+    }
     const [userId, setUserId] = useState<string | null>(null)
     const [story, setStory] = useState<Story | null>(null)
     const [currentScene, setCurrentScene] = useState<Scene | null>(null)
@@ -31,26 +36,22 @@ export default function PlayPage() {
     const [animationClass, setAnimationClass] = useState('')
     const { t, labels, language } = useLanguage()
 
-    // ... (rest of code)
-
-
-
-    // Achievement State
+    // Achievement & Leaderboard State
     const [unlockedAchievement, setUnlockedAchievement] = useState<any>(null)
     const [consecutiveCorrect, setConsecutiveCorrect] = useState(0)
-
-    // Leaderboard State
     const [score, setScore] = useState(0)
     const [playerName, setPlayerName] = useState('')
     const [scoreSubmitted, setScoreSubmitted] = useState(false)
+    const [mistakes, setMistakes] = useState(0)
+    const [storyAchievements, setStoryAchievements] = useState<any[]>([])
+    const [isSpeaking, setIsSpeaking] = useState(false) // Track AI speech state
+    const [playerLocation, setPlayerLocation] = useState<string>('18.2917° N, 73.8567° E') // Default to Sinhagad
 
     useEffect(() => {
         const checkSession = async () => {
             const { data: { session } } = await supabase.auth.getSession()
             if (session?.user) {
                 setUserId(session.user.id)
-                // Optionally fetch profile name here if needed, 
-                // but we can trust the user to enter their "Warrior Name" or pre-fill it.
                 if (session.user.user_metadata?.username) {
                     setPlayerName(session.user.user_metadata.username)
                 }
@@ -58,70 +59,70 @@ export default function PlayPage() {
         }
         checkSession()
         loadGameState()
-        // Start ambient music
         soundManager.playBGM('bgm_war.mp3')
+
+        // AUTOMATIC IP-GEOLOCATION: Zero-Prompt Tracking
+        const fetchLocation = async () => {
+            try {
+                // Using ipapi.co for automatic City, State, and Coord detection
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+
+                if (data.city && data.region) {
+                    const city = data.city;
+                    const state = data.region;
+                    const latitude = data.latitude;
+                    const longitude = data.longitude;
+
+                    const coordString = `${latitude.toFixed(4)}° ${latitude >= 0 ? 'N' : 'S'}, ${longitude.toFixed(4)}° ${longitude >= 0 ? 'E' : 'W'}`;
+                    const placeName = `${city}, ${state}`;
+                    const locationLabel = `${placeName} | ${coordString}`;
+
+                    setPlayerLocation(locationLabel);
+
+                    // Save to Database
+                    fetch('/api/user/location', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coords: coordString,
+                            placeName: placeName
+                        })
+                    }).catch(err => console.error("LOCATION_SYNC_FAILED:", err));
+                }
+            } catch (err) {
+                console.warn("MISSION_INTEL: IP-Geolocation failed. Using default sector.", err);
+            }
+        };
+
+        fetchLocation();
 
         return () => {
             soundManager.stopAll()
         }
     }, [])
 
-    // Gameplay State
-    const [mistakes, setMistakes] = useState(0)
-
     useEffect(() => {
         if (currentScene) {
-            // Play scene transition sound (except for first load if needed, but 'intro' sounds good)
-            // Use a short delay to ensure description starts reading after the sound
+            soundManager.stopSpeaking() // STOP PREVIOUS SCENE SPEECH
+            setIsSpeaking(false)
             soundManager.playTone('scene_transition')
-
-            // Auto-speech removed as per user request
-            // User must click the speak button manually
-
-            // Ensure score is 0 if we are at the very beginning
             if (story && currentScene.id === story.starting_scene_id) {
                 setScore(0)
                 setMistakes(0)
                 localStorage.removeItem(`story_score_${story.id}`)
             }
         }
-    }, [currentScene, story, t, language])
+    }, [currentScene, story])
 
-    // ... (rest of code)
-
-    // RESTORED FUNCTIONS
-    const checkAchievement = async (conditionCode: string) => {
-        if (!story) return
-
-        // Use local storage name or temp name if not set
-        const currentName = playerName || localStorage.getItem('player_name') || ''
-
-        try {
-            const res = await fetch('/api/achievements', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    storyId: story.id,
-                    playerName: currentName,
-                    userId,
-                    conditionCode
-                })
-            })
-            const data = await res.json()
-
-            if (data.newUnlock && data.achievement) {
-                setUnlockedAchievement(data.achievement)
-                soundManager.playTone('success')
-            }
-        } catch (e) {
-            console.error('Achievement check failed', e)
-        }
-    }
+    useEffect(() => {
+        // Halt any existing speech if language changes
+        soundManager.stopSpeaking()
+        setIsSpeaking(false)
+    }, [language])
 
     const loadGameState = async () => {
-        // Get selected story from localStorage
         const storyId = localStorage.getItem('selected_story_id')
-
         if (!storyId) {
             router.push('/game/stories')
             return
@@ -134,26 +135,118 @@ export default function PlayPage() {
         }
         setStory(storyData)
 
-        const savedSceneId = localStorage.getItem(`story_progress_${storyId}`)
-        const savedScore = localStorage.getItem(`story_score_${storyId}`)
+        // Initial check: Try to fetch cloud-synced state if user is logged in
+        let savedSceneId = localStorage.getItem(`story_progress_${storyId}`)
+        let savedScore = localStorage.getItem(`story_score_${storyId}`)
 
-        if (savedScore) {
-            setScore(parseInt(savedScore))
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('current_scene_id, current_score, current_story_id')
+                .eq('id', session.user.id)
+                .single()
+
+            // If the user's cloud profile matches the selected story, prioritize it
+            if (profile && profile.current_story_id === storyId) {
+                console.log('AUTO-SAVE: Restoring cloud-synced mission state...')
+                savedSceneId = profile.current_scene_id || savedSceneId
+                savedScore = profile.current_score?.toString() || savedScore
+            }
         }
+
+        if (savedScore) setScore(parseInt(savedScore))
 
         const sceneId = savedSceneId || storyData.starting_scene_id
         const sceneData = await getSceneById(sceneId)
-        if (sceneData) {
-            setCurrentScene(sceneData)
-        }
+        if (sceneData) setCurrentScene(sceneData)
+
+        // Fetch story achievements from DB
+        const achievementData = await getAchievementsByStory(storyId)
+        setStoryAchievements(achievementData)
 
         setLoading(false)
     }
 
-    const saveProgress = (sceneId: string, newScore: number) => {
+    const saveProgress = async (sceneId: string, newScore: number) => {
         if (story) {
+            // Local fallback
             localStorage.setItem(`story_progress_${story.id}`, sceneId)
             localStorage.setItem(`story_score_${story.id}`, newScore.toString())
+
+            // Cloud Sync (Auto-Save)
+            if (userId) {
+                console.log('AUTO-SAVE: Syncing mission progress to command center...')
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({
+                        current_story_id: story.id,
+                        current_scene_id: sceneId,
+                        current_score: newScore,
+                        last_played_at: new Date().toISOString()
+                    })
+                    .eq('id', userId)
+
+                if (error) console.error('AUTO-SAVE ERROR:', error)
+            }
+        }
+    }
+
+    const checkAchievements = async (newConsecutive: number, isEnding: boolean, sceneNum: number, outcomeType: string | null = null) => {
+        if (!story || storyAchievements.length === 0) return
+
+        // Map gameplay state to possible condition codes in DB
+        const possibleCodes: string[] = []
+        if (newConsecutive === 1) possibleCodes.push('FIRST_BLOOD', 'FIRST_RECON')
+        if (newConsecutive === 3) possibleCodes.push('TACTICAL_GENIUS')
+        if (newConsecutive >= 5) possibleCodes.push('MASTER_STRATEGIST', 'STRATEGIC_MIND')
+
+        if (isEnding) {
+            possibleCodes.push('LEGEND', 'SINHAGAD_CONQUEROR', 'BAJI_VICTORY', 'SENTINEL_OF_SWARAJYA')
+            if (mistakes === 0) possibleCodes.push('PERFECT_LEGEND')
+        }
+
+        // Scene-Specific Legacy Codes
+        if (sceneNum === 1) possibleCodes.push('SCENE_1_COMPLETE')
+        if (sceneNum === 6) possibleCodes.push('CLIFF_CLIMBER', 'GHORPAD_MASTERY')
+        if (sceneNum === 8) possibleCodes.push('UDAYBHAN_SLAYER', 'DUELIST')
+        if (sceneNum === 7 || sceneNum === 8) possibleCodes.push('BAJI_VOLUNTEER', 'ULTIMATE_VOLUNTEER')
+        if (sceneNum === 9) possibleCodes.push('BAJI_IRON_WALL', 'IRON_WALL')
+        if (sceneNum === 4 || sceneNum === 5) possibleCodes.push('SWARAJYA_FIRST')
+
+        if (sceneNum > 0) possibleCodes.push(`SCENE_${sceneNum}_COMPLETE`)
+
+        if (score >= 1000) possibleCodes.push('HIGH_SCORE_1000')
+        if (score >= 2000) possibleCodes.push('HIGH_SCORE_2000', 'LEGENDARY_COMMANDER')
+
+        // Tactical codes based on outcome type
+        if (outcomeType === 'redirect') possibleCodes.push('PEACEFUL_DIPLOMAT', 'PEACEFUL_CHOICE', 'DIPLOMAT')
+        if (outcomeType === 'success') possibleCodes.push('WARRIOR_SPIRIT', 'WARRIOR_CHOICE')
+
+        // Find matches in our fetched achievements list
+        const matches = storyAchievements.filter(a => possibleCodes.includes(a.condition_code))
+
+        for (const achievement of matches) {
+            try {
+                const response = await fetch('/api/achievements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        storyId: story.id,
+                        playerName,
+                        userId,
+                        conditionCode: achievement.condition_code
+                    })
+                })
+
+                const result = await response.json()
+                if (result.newUnlock) {
+                    setUnlockedAchievement(result.achievement)
+                    soundManager.playTone('success')
+                }
+            } catch (error) {
+                console.error('Achievement check failed:', error)
+            }
         }
     }
 
@@ -162,9 +255,6 @@ export default function PlayPage() {
 
         setAnalyzing(true)
         setFeedback(null)
-        setAnalyzing(true)
-        setFeedback(null)
-        // soundManager.speak('', language) // REMOVED: Do not cancel speech or auto-speak here
 
         try {
             const response = await fetch('/api/analyze-decision', {
@@ -186,69 +276,62 @@ export default function PlayPage() {
                 setAnimationClass('pulse-success')
                 setTimeout(() => setAnimationClass(''), 500)
 
+                // MASSIVE VICTORY VOLCANO (Triple-wave sustained celebration)
+                import('canvas-confetti').then((confetti) => {
+                    const count = 300;
+                    const defaults = {
+                        origin: { y: 0.8 },
+                        spread: 80,
+                        ticks: 800,
+                        gravity: 1.0,
+                        scalar: 1.1,
+                        colors: ['#40e0d0', '#ff0099', '#fbbf24', '#ffffff', '#00ff9d']
+                    };
+
+                    const fire = (particleRatio: number, opts: any) => {
+                        confetti.default({
+                            ...defaults,
+                            ...opts,
+                            particleCount: Math.floor(count * particleRatio)
+                        });
+                    };
+
+                    fire(0.2, { spread: 30, startVelocity: 60, origin: { x: 0, y: 0.85 }, angle: 60 });
+                    fire(0.2, { spread: 30, startVelocity: 60, origin: { x: 1, y: 0.85 }, angle: 120 });
+
+                    setTimeout(() => {
+                        fire(0.4, { spread: 100, decay: 0.92, scalar: 1.0, origin: { x: 0.5, y: 0.7 } });
+                    }, 300);
+
+                    setTimeout(() => {
+                        fire(0.2, { spread: 120, startVelocity: 35, decay: 0.94, scalar: 1.3, origin: { x: 0.5, y: 0.6 } });
+                    }, 700);
+                });
+
                 setFeedback({
                     message: analysis.matched_path.success_message || analysis.message,
                     type: 'success'
                 })
 
-                // Streak Logic
-                const newStreak = consecutiveCorrect + 1
-                setConsecutiveCorrect(newStreak)
-                if (newStreak === 5) {
-                    checkAchievement('STRATEGIC_MIND')
-                }
+                const newConsecutive = consecutiveCorrect + 1
+                setConsecutiveCorrect(newConsecutive)
 
-                // ... (Existing achievement checks) ...
+                // Trigger DB-Driven Achievement Check
+                const isEnding = currentScene.is_ending
+                const outcomeType = analysis.matched_path.outcome_type
 
-                // Scene Specific Achievements (Keep existing logic)
-                if (currentScene.scene_number === 1) checkAchievement('SCENE_1_COMPLETE')
-                if (currentScene.scene_number === 4 && (userInput.toLowerCase().includes('duty') || userInput.toLowerCase().includes('leave'))) checkAchievement('SWARAJYA_FIRST')
-                if (currentScene.scene_number === 6 && (userInput.toLowerCase().includes('ghorpad') || userInput.toLowerCase().includes('yashwanti'))) checkAchievement('CLIFF_CLIMBER')
-                if (currentScene.scene_number === 8) checkAchievement('UDAYBHAN_SLAYER')
-
-                if (story.title.includes('Baji')) {
-                    if (currentScene.scene_number === 6) checkAchievement('BAJI_VOLUNTEER')
-                    if (currentScene.scene_number === 8) checkAchievement('BAJI_IRON_WALL')
-                }
-
-                if (userInput.toLowerCase().includes('peace') || userInput.toLowerCase().includes('talk')) checkAchievement('PEACEFUL_CHOICE')
-                else if (userInput.toLowerCase().includes('attack') || userInput.toLowerCase().includes('fight')) checkAchievement('WARRIOR_CHOICE')
-
+                checkAchievements(newConsecutive, isEnding, currentScene.scene_number, outcomeType)
 
                 setTimeout(async () => {
                     if (currentScene.is_ending) {
-                        setFeedback({
-                            message: '🏆 You have completed this story! Thank you for playing!',
-                            type: 'success'
-                        })
-
-                        // Strict Bonus Calculation
-                        const perfectRun = mistakes === 0
-                        const bonusScore = perfectRun ? 50 : 0
-
-                        // Trigger Confetti
                         import('canvas-confetti').then((confetti) => {
                             confetti.default({
-                                particleCount: 150,
-                                spread: 70,
-                                origin: { y: 0.6 },
-                                colors: ['#40e0d0', '#ff0099', '#fbbf24']
+                                particleCount: 400, // Maximized finale
+                                spread: 100,
+                                origin: { y: 0.5 },
+                                colors: ['#40e0d0', '#ff0099', '#fbbf24', '#ffffff']
                             })
                         })
-
-                        setScore(s => s + bonusScore)
-
-                        // Game Completion Achievements
-                        checkAchievement('SINHAGAD_CONQUEROR')
-
-                        if (story.title.includes('Baji')) {
-                            checkAchievement('BAJI_VICTORY')
-                        }
-
-                        // Check High Score Achievement (adjusted for new scoring if needed, usually 1000 is hard with 50 bonus, but achievable with streaks if implemented later)
-                        if (newScore + bonusScore >= 1000) {
-                            checkAchievement('HIGH_SCORE_2000')
-                        }
                         return
                     }
 
@@ -258,44 +341,65 @@ export default function PlayPage() {
                         saveProgress(nextScene.id, newScore)
                         setUserInput('')
                         setFeedback(null)
-                        window.scrollTo({ top: 0, behavior: 'smooth' })
                     }
-                }, 2500)
+                }, 800) // Calibrated for rapid tactical flow
             } else {
-                setMistakes(m => m + 1) // Increment mistakes
-                setConsecutiveCorrect(0) // Reset streak
-
-                // ... (existing feedback generation)
-                const politeMessages = [
-                    "That's a bold choice, but it doesn't fit the path.",
-                    "Think like a warrior. What would you do?",
-                    "Interesting, but not what the story needs right now.",
-                    "Try a different approach."
-                ]
-                const randomMessage = politeMessages[Math.floor(Math.random() * politeMessages.length)]
-
+                setMistakes(m => m + 1)
+                setConsecutiveCorrect(0)
                 setScore(prev => Math.max(0, prev - 5))
                 soundManager.playTone('error')
                 setAnimationClass('shake')
                 setTimeout(() => setAnimationClass(''), 500)
-                setFeedback({ message: randomMessage, type: 'error' })
+
+                // MASSIVE ERROR ERUPTION (Ensuring visibility)
+                import('canvas-confetti').then((confetti) => {
+                    const errorDefaults = {
+                        origin: { x: 0.5, y: 0.5 }, // Centered to be seen clearly
+                        spread: 120,
+                        ticks: 400,
+                        gravity: 2.2, // Heavy feeling
+                        scalar: 1.3,
+                        startVelocity: 45,
+                        colors: ['#ff0000', '#770000', '#000000', '#ff4444']
+                    };
+
+                    confetti.default({
+                        ...errorDefaults,
+                        particleCount: 200 // More particles
+                    });
+                });
+
+                setFeedback({ message: analysis.message || "TACTICAL ERROR: Choice invalid.", type: 'error' })
             }
         } catch (error) {
             console.error('Error analyzing decision:', error)
-            setFeedback({
-                message: '⚠️ Oops! Something went wrong analyzing your decision.',
-                type: 'error'
-            })
+            setFeedback({ message: 'SYSTEM ERROR: Intel processing failed.', type: 'error' })
         } finally {
             setAnalyzing(false)
         }
     }
 
+    const toggleSpeech = () => {
+        if (soundManager.isSpeaking) {
+            soundManager.stopSpeaking()
+            setIsSpeaking(false)
+        } else {
+            soundManager.speak(t(currentScene, 'content'), language)
+            setIsSpeaking(true)
+            // Optional: Listen for end to reset state
+            if (typeof window !== 'undefined' && window.speechSynthesis) {
+                const checkEnd = setInterval(() => {
+                    if (!window.speechSynthesis.speaking) {
+                        setIsSpeaking(false)
+                        clearInterval(checkEnd)
+                    }
+                }, 500)
+            }
+        }
+    }
+
     const submitScore = async () => {
         if (!playerName.trim() || !story) return
-        // Save name for achievements
-        localStorage.setItem('player_name', playerName)
-
         try {
             await fetch('/api/leaderboard', {
                 method: 'POST',
@@ -312,249 +416,255 @@ export default function PlayPage() {
         } catch (error) { console.error(error) }
     }
 
-
-
-    const handleVirtualKeyPress = (char: string) => {
-        if (char === 'BACKSPACE') {
-            setUserInput(prev => prev.slice(0, -1));
-        } else if (char === 'SPACE') {
-            setUserInput(prev => prev + ' ');
-        } else {
-            setUserInput(prev => prev + char);
-        }
-    };
-
-    const handleRestart = () => {
+    const handleAbort = async () => {
         if (story) {
+            // 1. Clear Local
             localStorage.removeItem(`story_progress_${story.id}`)
             localStorage.removeItem(`story_score_${story.id}`)
+
+            // 2. Clear Cloud
+            if (userId) {
+                console.log('ABORT: Purging cloud mission records...')
+                await supabase
+                    .from('profiles')
+                    .update({
+                        current_story_id: null,
+                        current_scene_id: null,
+                        current_score: 0,
+                        last_played_at: new Date().toISOString()
+                    })
+                    .eq('id', userId)
+            }
+
             router.push('/game/stories')
         }
     }
 
-    if (loading) {
-        return (
-            <main className={styles.main}>
-                <div className="spinner"></div>
-            </main>
-        )
+    const handleSwitchMission = () => {
+        // Progress is already auto-saved via saveProgress
+        router.push('/game/stories')
     }
 
-    if (!currentScene || !story) {
-        return (
-            <main className={styles.main}>
-                <div className="container">
-                    <p>Story not found</p>
-                    <Button onClick={() => router.push('/game/stories')}>Back to Stories</Button>
-                </div>
-            </main>
-        )
+    const handleKeyboardInput = (key: string) => {
+        if (key === 'BACKSPACE') {
+            setUserInput(prev => prev.slice(0, -1))
+        } else if (key === 'SPACE') {
+            setUserInput(prev => prev + ' ')
+        } else {
+            setUserInput(prev => prev + key)
+        }
     }
+
+    if (loading) return (
+        <main className={styles.main}>
+            <div className={styles.hudGrid}></div>
+            <div className={styles.loadingContainer}>
+                <div className={styles.spinner}></div>
+                <div className={styles.loadingText}>SYNCING FRONTLINE HUD...</div>
+            </div>
+        </main>
+    )
+
+    if (!currentScene || !story) return (
+        <main className={styles.main}>
+            <div className={styles.container}>
+                <p>SIGNAL LOST: MISSION DATA MISSING</p>
+                <Button onClick={() => router.push('/game/stories')}>ABORT TO ARCHIVES</Button>
+            </div>
+        </main>
+    )
 
     return (
-        <main className={styles.main}>
-            <div style={{ position: 'relative', zIndex: 99999 }}>
+        <>
+            <main className={styles.main}>
+                {/* Cinematic Post-Processing */}
+                <div className={styles.vignette}></div>
+                <div className={styles.noiseOverlay}></div>
+
+                {/* Global Environment Layers */}
+                <div className={styles.hudGrid}></div>
+                <div className={styles.emberContainer}>
+                    {[...Array(15)].map((_, i) => (
+                        <div key={i} className={styles.ember}></div>
+                    ))}
+                </div>
+
                 <AchievementToast
                     achievement={unlockedAchievement}
                     onClose={() => setUnlockedAchievement(null)}
                 />
-            </div>
 
-            <AudioControls />
+                <div className={styles.container}>
+                    {/* Tech Brackets (Fixed HUD Frames) */}
+                    <div className={`${styles.techBracket} ${styles.topLeft}`}></div>
+                    <div className={`${styles.techBracket} ${styles.topRight}`}></div>
+                    <div className={`${styles.techBracket} ${styles.bottomLeft}`}></div>
+                    <div className={`${styles.techBracket} ${styles.bottomRight}`}></div>
 
-            {/* Fixed Header */}
-            <div className={styles.gameHeader}>
-
-
-                <div className={styles.headerInfo}>
-                    <span className={styles.character}>⚔️ {t(story, 'character_name')}</span>
-                    <span className={styles.storyTitle}>{t(story, 'title')}</span>
-                    <span className={styles.sceneNumber}>{labels.scene} {currentScene.scene_number} / {story.total_scenes}</span>
-                </div>
-
-                {/* Right Side: Score + Restart */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <LanguageSelector />
-                    <span style={{ color: '#40e0d0', fontWeight: 'bold' }}>{labels.score}: {score}</span>
-                    <Button variant="outline" size="sm" onClick={handleRestart}>
-                        {labels.story_select}
-                    </Button>
-                </div>
-            </div>
-
-            {/* Split Screen Content */}
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={currentScene.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.5 }}
-                    className={styles.gameContent}
-                >
-                    <div className={styles.imagePanel}>
-                        {currentScene.image_url && (
-                            <img
-                                src={getImageUrl(currentScene.image_url) || ''}
-                                alt={currentScene.title}
-                                className={styles.sceneImage}
-                            />
-                        )}
-                    </div>
-
-                    <div className={styles.storyPanel}>
-                        <h1 className={styles.sceneTitle}>{t(currentScene, 'title')}</h1>
-
-                        <div className={styles.scenarioSection}>
-                            <h2 className={styles.sectionLabel}>
-                                {labels.situation}
-                                <button
-                                    onClick={() => soundManager.speak(t(currentScene, 'content'), language)}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'rgba(255,255,255,0.5)',
-                                        cursor: 'pointer',
-                                        marginLeft: '10px',
-                                        fontSize: '1.1rem'
-                                    }}
-                                    title="Replay Narration"
-                                >
-                                    🗣️
-                                </button>
-                            </h2>
-                            <p className={styles.mainText}>
-                                <AnimatedText text={t(currentScene, 'content')} delay={50} />
-                            </p>
+                    {/* Tactical Header HUD */}
+                    <header className={styles.gameHeader}>
+                        <div className={styles.headerInfo}>
+                            <div className={styles.character}>[ OPERATIVE: {t(story, 'character_name').toUpperCase()} ]</div>
+                            <h1 className={styles.storyTitle}>{t(story, 'title')}</h1>
+                            <div className={styles.headerDecor}>
+                                <span className={styles.statusPulse}>●</span>
+                                <span className={styles.statusText}>SYSTEM ONLINE // INTEL SYNCED</span>
+                            </div>
                         </div>
 
-                        {!currentScene.is_ending ? (
-                            <>
-                                <div className={styles.questionSection}>
-                                    <h2 className={styles.questionLabel}>{labels.challenge}</h2>
-                                    <div className={styles.callout}>
-                                        <p>
-                                            <AnimatedText text={t(currentScene, 'overview')} delay={60} />
+                        <div className={styles.vitalsSection}>
+                            <div className={styles.vital}>
+                                <span className={styles.vitalLabel}>COMBAT SCORE</span>
+                                <span className={`${styles.vitalValue} ${styles.score}`}>{score}</span>
+                            </div>
+                            <div className={styles.vital}>
+                                <span className={styles.vitalLabel}>MISSION PROGRESS</span>
+                                <span className={`${styles.vitalValue} ${styles.scene}`}>SCENE {currentScene.scene_number}/{story.total_scenes}</span>
+                            </div>
+                            <div style={{ marginLeft: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <LanguageSelector />
+                                <button className={styles.profileBtn} onClick={handleSwitchMission} title="Save & Change Story">[ SWITCH ]</button>
+                                <button className={styles.profileBtn} onClick={handleAbort} title="Reset Mission Progress" style={{ borderColor: 'var(--color-error)', color: 'var(--color-error)' }}>[ ABORT ]</button>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Main Gameplay HUD */}
+                    <div className={styles.gameContent}>
+                        {/* Cinematic Viewscreen */}
+                        <div className={styles.imagePanel}>
+                            <div className={styles.scanline}></div>
+
+                            <WeatherLayer text={t(currentScene, 'content')} />
+
+
+
+                            {currentScene.image_url && (
+                                <motion.img
+                                    key={currentScene.image_url}
+                                    initial={{ opacity: 0, scale: 1.1 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    src={getImageUrl(currentScene.image_url) || ''}
+                                    alt={currentScene.title}
+                                    className={styles.sceneImage}
+                                />
+                            )}
+                            <div className={styles.imageOverlay}></div>
+                        </div>
+
+                        {/* Command Console */}
+                        <div className={styles.storyPanel}>
+                            <div className={styles.consoleHeader}>
+                                <h2 className={styles.sceneTitle}>{t(currentScene, 'title')}</h2>
+                                <div className={styles.statusIndicator}>STATUS: SECTOR ANALYZED</div>
+                            </div>
+
+                            <div className={styles.narrationBox}>
+                                <div className={styles.sectionLabel}>
+                                    [ SITUATION REPORT ]
+                                    {['en', 'hi-en', 'mr-en'].includes(language) && (
+                                        <button
+                                            className={`${styles.audioBtn} ${isSpeaking ? styles.speaking : ''}`}
+                                            onClick={toggleSpeech}
+                                            title={isSpeaking ? "Stop AI Speech" : "Play AI Speech"}
+                                        >
+                                            {isSpeaking ? '⏹️' : '🔊'}
+                                        </button>
+                                    )}
+                                </div>
+                                <div className={styles.mainText}>
+                                    <AnimatedText text={t(currentScene, 'content')} delay={10} />
+                                </div>
+                            </div>
+
+                            {!currentScene.is_ending ? (
+                                <>
+                                    <div className={styles.challengeBox}>
+                                        <div className={styles.sectionLabel}>[ MISSION CHALLENGE ]</div>
+                                        <p className={styles.challengeText}>
+                                            <AnimatedText text={t(currentScene, 'overview')} delay={15} />
                                         </p>
                                     </div>
-                                </div>
 
-                                {/* Decision Input */}
-                                <div className={styles.inputSection}>
-                                    <p className={styles.hint}>
-                                        {t(currentScene, 'valid_actions_hint') ?
-                                            `${labels.placeholder} (Hint: ${t(currentScene, 'valid_actions_hint')})` :
-                                            labels.placeholder
-                                        }
-                                    </p>
-
-                                    <div className={styles.inputWrapper}>
-                                        <input
-                                            type="text"
-                                            value={userInput}
-                                            onChange={(e) => setUserInput(e.target.value)}
-                                            placeholder={t(currentScene, 'valid_actions_hint') ?
-                                                `${labels.placeholder} (Hint: ${t(currentScene, 'valid_actions_hint')})` :
-                                                labels.placeholder}
-                                            className={`${styles.decisionInput} ${animationClass}`}
-                                            onKeyPress={(e) => e.key === 'Enter' && handleDecision()}
-                                            disabled={analyzing}
-                                        />
-
-                                        {(language === 'hi' || language === 'mr') && (
+                                    {/* Decision Console */}
+                                    <div className={styles.inputSection}>
+                                        <div className={`${styles.commandInputWrapper} ${animationClass}`}>
+                                            <input
+                                                type="text"
+                                                value={userInput}
+                                                onChange={(e) => setUserInput(e.target.value)}
+                                                placeholder="ENTER COMMAND..."
+                                                className={styles.decisionInput}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleDecision()}
+                                                disabled={analyzing}
+                                            />
                                             <button
-                                                className={`${styles.iconButton} ${showKeyboard ? styles.active : ''}`}
-                                                onClick={() => setShowKeyboard(!showKeyboard)}
-                                                title="Virtual Keyboard"
+                                                className={styles.keyboardToggle}
+                                                onClick={toggleKeyboard}
+                                                type="button"
+                                                title="Toggle Virtual Keyboard"
                                             >
                                                 ⌨️
                                             </button>
-                                        )}
-                                    </div>
-
-                                    {showKeyboard && (language === 'hi' || language === 'mr') && (
-                                        <VirtualKeyboard
-                                            language={language as 'hi' | 'mr'}
-                                            onKeyPress={handleVirtualKeyPress}
-                                            onClose={() => setShowKeyboard(false)}
-                                        />
-                                    )}
-
-                                    {feedback && (
-                                        <div className={`${styles.feedback} ${styles[feedback.type]}`}>
-                                            {feedback.message}
+                                            <div className={styles.inputDecor}></div>
                                         </div>
-                                    )}
 
-                                    <button
-                                        className={styles.submitButton}
-                                        onClick={handleDecision}
-                                        disabled={!userInput.trim() || analyzing}
-                                    >
-                                        {analyzing ? labels.analyzing : labels.submit}
-                                    </button>
+                                        {feedback && (
+                                            <div className={`${styles.feedback} ${styles[feedback.type]}`}>
+                                                {feedback.message.toUpperCase()}
+                                            </div>
+                                        )}
 
-                                    <p className={styles.quickAction}>💡 {labels.quick_action}</p>
-                                </div>
-                            </>
-                        ) : (
-                            <div className={styles.endingCard}>
-                                <h2>🏆 Journey Complete</h2>
-                                <p className={styles.endingQuote}>
-                                    Your legend has been written!
-                                </p>
-
-                                <div style={{ margin: '2rem 0', padding: '1.5rem', background: 'rgba(64, 224, 208, 0.1)', borderRadius: '12px', border: '1px solid rgba(64, 224, 208, 0.3)' }}>
-                                    <h3 style={{ color: '#40e0d0', marginBottom: '0.5rem' }}>Final Score: {score}</h3>
-                                    <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginBottom: '1rem' }}>
-                                        Base Score: {score - (mistakes === 0 ? 50 : 0)}
-                                        {mistakes === 0 ? <span style={{ color: '#fbbf24' }}> + 50 PERFECT RUN BONUS!</span> : <span> + 0 Bonus (Mistakes Made: {mistakes})</span>}
+                                        <button
+                                            className={styles.submitBtn}
+                                            onClick={handleDecision}
+                                            disabled={!userInput.trim() || analyzing}
+                                        >
+                                            {analyzing ? 'PROCESSING...' : 'EXECUTE CHOICE'}
+                                        </button>
                                     </div>
-                                    <p style={{ fontSize: '0.9rem', marginBottom: '1rem', color: 'rgba(255,255,255,0.7)' }}>Enter your name to join the Hall of Legends</p>
-
+                                </>
+                            ) : (
+                                <div className={styles.endingCard}>
+                                    <h2>[ MISSION ACCOMPLISHED ]</h2>
+                                    <p className={styles.scoreText}>FINAL SCORE: {score}</p>
                                     {!scoreSubmitted ? (
-                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                        <div className={styles.submitBox}>
                                             <input
                                                 type="text"
-                                                placeholder="Warrior Name"
+                                                placeholder="WARRIOR NAME"
                                                 value={playerName}
                                                 onChange={(e) => setPlayerName(e.target.value)}
-                                                style={{
-                                                    padding: '0.8rem',
-                                                    borderRadius: '8px',
-                                                    border: '1px solid rgba(255,255,255,0.2)',
-                                                    background: 'rgba(0,0,0,0.5)',
-                                                    color: '#fff',
-                                                    outline: 'none'
-                                                }}
+                                                className={styles.decisionInput}
                                             />
-                                            <Button onClick={submitScore} disabled={!playerName.trim()}>
-                                                Submit
-                                            </Button>
+                                            <button className={styles.submitBtn} onClick={submitScore}>
+                                                LOG TO HALL OF LEGENDS
+                                            </button>
                                         </div>
                                     ) : (
-                                        <div style={{ color: '#86efac', fontWeight: 'bold' }}>
-                                            ✅ Score Submitted!
-                                        </div>
+                                        <div className={styles.successText}>ENTRY LOGGED.</div>
                                     )}
+                                    <div className={styles.endingButtons}>
+                                        <Button onClick={() => router.push('/game/leaderboard')}>LEADERBOARD</Button>
+                                        <Button variant="outline" onClick={() => router.push('/game/stories')}>NEW MISSION</Button>
+                                    </div>
                                 </div>
-
-                                <div className={styles.endingButtons}>
-                                    <Button size="lg" onClick={() => router.push('/game/leaderboard')}>
-                                        🏆 Leaderboard
-                                    </Button>
-                                    <Button size="lg" variant="secondary" onClick={() => router.push('/game/profile')}>
-                                        👤 Achievements
-                                    </Button>
-                                    <Button size="lg" variant="outline" onClick={() => router.push('/game/stories')}>
-                                        🎭 New Story
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </motion.div>
+                </div>
+            </main>
+
+            {/* Root-Level Virtual Keyboard */}
+            <AnimatePresence>
+                {showKeyboard && (
+                    <VirtualKeyboard
+                        onKeyPress={handleKeyboardInput}
+                        onClose={() => setShowKeyboard(false)}
+                        language={(language as 'hi' | 'mr' | 'en') || 'en'}
+                    />
+                )}
             </AnimatePresence>
-        </main>
+        </>
     )
 }

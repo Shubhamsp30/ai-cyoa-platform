@@ -27,7 +27,7 @@ WHERE scene_number = 1 AND story_id = (SELECT id FROM public.stories WHERE title
 
 -- Scene 2: The Mother's Gaze (Meet Rajmata)
 UPDATE public.scenes
-SET valid_paths = '[
+SET valid_paths = '[ 
     {
         "intent_keywords": [
             "continue", "next", "proceed", "listen", "approach", "meet", "yes", "go",
