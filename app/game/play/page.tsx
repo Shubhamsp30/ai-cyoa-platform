@@ -61,37 +61,53 @@ export default function PlayPage() {
         loadGameState()
         soundManager.playBGM('bgm_war.mp3')
 
-        // AUTOMATIC IP-GEOLOCATION: Zero-Prompt Tracking
+        // DUAL-MODE GEOLOCATION: GPS Precision with IP Fallback
         const fetchLocation = async () => {
+            let latitude: number | null = null;
+            let longitude: number | null = null;
+            let placeName = "Unknown Sector";
+
+            // 1. Try GPS Intel (High-Precision)
+            const getGPSCoords = () => new Promise<GeolocationPosition | null>((resolve) => {
+                if (!navigator.geolocation) return resolve(null);
+                navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 5000 });
+            });
+
+            const gpsData = await getGPSCoords();
+            if (gpsData) {
+                console.log("MISSION_INTEL: GPS Lock Acquired.");
+                latitude = gpsData.coords.latitude;
+                longitude = gpsData.coords.longitude;
+            }
+
             try {
-                // Using ipapi.co for automatic City, State, and Coord detection
-                const response = await fetch('https://ipapi.co/json/');
-                const data = await response.json();
+                // 2. Fetch IP Intel for City/State context and Fallback Coords
+                const ipResponse = await fetch('https://ipapi.co/json/');
+                const ipData = await ipResponse.json();
 
-                if (data.city && data.region) {
-                    const city = data.city;
-                    const state = data.region;
-                    const latitude = data.latitude;
-                    const longitude = data.longitude;
-
-                    const coordString = `${latitude.toFixed(4)}° ${latitude >= 0 ? 'N' : 'S'}, ${longitude.toFixed(4)}° ${longitude >= 0 ? 'E' : 'W'}`;
-                    const placeName = `${city}, ${state}`;
-                    const locationLabel = `${placeName} | ${coordString}`;
-
-                    setPlayerLocation(locationLabel);
-
-                    // Save to Database
-                    fetch('/api/user/location', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            coords: coordString,
-                            placeName: placeName
-                        })
-                    }).catch(err => console.error("LOCATION_SYNC_FAILED:", err));
+                if (ipData.city && ipData.region) {
+                    placeName = `${ipData.city}, ${ipData.region}`;
+                    if (latitude === null) {
+                        latitude = ipData.latitude;
+                        longitude = ipData.longitude;
+                        console.log("MISSION_INTEL: Using IP-based Sector Fallback.");
+                    }
                 }
             } catch (err) {
-                console.warn("MISSION_INTEL: IP-Geolocation failed. Using default sector.", err);
+                console.warn("MISSION_INTEL: IP-context fetch failed.", err);
+            }
+
+            if (latitude !== null && longitude !== null) {
+                const coordString = `${latitude.toFixed(6)}° ${latitude >= 0 ? 'N' : 'S'}, ${longitude.toFixed(6)}° ${longitude >= 0 ? 'E' : 'W'}`;
+                const locationLabel = `${placeName} | ${coordString}`;
+                setPlayerLocation(locationLabel);
+
+                // Save to Database
+                fetch('/api/user/location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ coords: coordString, placeName: placeName })
+                }).catch(err => console.error("LOCATION_SYNC_FAILED:", err));
             }
         };
 
@@ -561,7 +577,6 @@ export default function PlayPage() {
 
                             <div className={styles.narrationBox}>
                                 <div className={styles.sectionLabel}>
-                                    [ SITUATION REPORT ]
                                     {['en', 'hi-en', 'mr-en'].includes(language) && (
                                         <button
                                             className={`${styles.audioBtn} ${isSpeaking ? styles.speaking : ''}`}
