@@ -61,40 +61,58 @@ export default function PlayPage() {
         loadGameState()
         soundManager.playBGM('bgm_war.mp3')
 
-        // DUAL-MODE GEOLOCATION: GPS Precision with IP Fallback
-        const fetchLocation = async () => {
+        // DUAL-MODE GEOLOCATION: GPS High-Precision with Reverse Geocoding & IP Fallback
+        const fetchLocation = async (forceLowAccuracy = false) => {
             let latitude: number | null = null;
             let longitude: number | null = null;
             let placeName = "Unknown Sector";
+            setPlayerLocation("CALIBRATING INTEL...");
 
-            // 1. Try GPS Intel (High-Precision)
+            // 1. Try GPS Intel (High-Precision Protocol)
             const getGPSCoords = () => new Promise<GeolocationPosition | null>((resolve) => {
-                if (!navigator.geolocation) return resolve(null);
-                navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 5000 });
+                if (!navigator.geolocation || forceLowAccuracy) return resolve(null);
+                navigator.geolocation.getCurrentPosition(
+                    resolve,
+                    (err) => {
+                        console.warn("MISSION_INTEL: GPS Precision Failed.", err);
+                        resolve(null);
+                    },
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                );
             });
 
             const gpsData = await getGPSCoords();
             if (gpsData) {
-                console.log("MISSION_INTEL: GPS Lock Acquired.");
+                console.log("MISSION_INTEL: High-Accuracy GPS Lock Acquired.");
                 latitude = gpsData.coords.latitude;
                 longitude = gpsData.coords.longitude;
+
+                // 2. Reverse Geocode (Get actual city/state for GPS coords)
+                try {
+                    const geoResponse = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+                    const geoData = await geoResponse.json();
+                    if (geoData.city || geoData.locality) {
+                        placeName = `${geoData.city || geoData.locality}, ${geoData.principalSubdivision || geoData.countryName}`;
+                    }
+                } catch (geoErr) {
+                    console.warn("MISSION_INTEL: Reverse Geocoding failed.", geoErr);
+                }
             }
 
-            try {
-                // 2. Fetch IP Intel for City/State context and Fallback Coords
-                const ipResponse = await fetch('https://ipapi.co/json/');
-                const ipData = await ipResponse.json();
-
-                if (ipData.city && ipData.region) {
-                    placeName = `${ipData.city}, ${ipData.region}`;
-                    if (latitude === null) {
+            // 3. IP Fallback (Only if GPS failed)
+            if (latitude === null) {
+                try {
+                    const ipResponse = await fetch('https://ipapi.co/json/');
+                    const ipData = await ipResponse.json();
+                    if (ipData.city && ipData.region) {
+                        placeName = `${ipData.city}, ${ipData.region}`;
                         latitude = ipData.latitude;
                         longitude = ipData.longitude;
                         console.log("MISSION_INTEL: Using IP-based Sector Fallback.");
                     }
+                } catch (err) {
+                    console.warn("MISSION_INTEL: IP-context fetch failed.", err);
                 }
-            } catch (err) {
-                console.warn("MISSION_INTEL: IP-context fetch failed.", err);
             }
 
             if (latitude !== null && longitude !== null) {
@@ -108,9 +126,12 @@ export default function PlayPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ coords: coordString, placeName: placeName })
                 }).catch(err => console.error("LOCATION_SYNC_FAILED:", err));
+            } else {
+                setPlayerLocation("UNABLE_TO_LOCATE_OPERATIVE");
             }
         };
 
+        (window as any).recalibrateLocation = fetchLocation; // For debug trigger
         fetchLocation();
 
         return () => {
@@ -538,6 +559,7 @@ export default function PlayPage() {
                                 <span className={`${styles.vitalValue} ${styles.scene}`}>SCENE {currentScene.scene_number}/{story.total_scenes}</span>
                             </div>
                             <div style={{ marginLeft: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <button className={styles.profileBtn} onClick={() => (window as any).recalibrateLocation()} title="High-Precision GPS Sync" style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}>[ RECALIBRATE GPS ]</button>
                                 <LanguageSelector />
                                 <button className={styles.profileBtn} onClick={handleSwitchMission} title="Save & Change Story">[ SWITCH ]</button>
                                 <button className={styles.profileBtn} onClick={handleAbort} title="Reset Mission Progress" style={{ borderColor: 'var(--color-error)', color: 'var(--color-error)' }}>[ ABORT ]</button>
