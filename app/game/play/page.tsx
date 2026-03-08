@@ -42,6 +42,7 @@ export default function PlayPage() {
     const [score, setScore] = useState(0)
     const [playerName, setPlayerName] = useState('')
     const [scoreSubmitted, setScoreSubmitted] = useState(false)
+    const [showHint, setShowHint] = useState(false)
     const [mistakes, setMistakes] = useState(0)
     const [storyAchievements, setStoryAchievements] = useState<any[]>([])
     const [isSpeaking, setIsSpeaking] = useState(false) // Track AI speech state
@@ -351,8 +352,11 @@ export default function PlayPage() {
                     }, 700);
                 });
 
+                const successOptions = labels.mission_updated.split('|');
+                const randomSuccess = successOptions[Math.floor(Math.random() * successOptions.length)];
+
                 setFeedback({
-                    message: analysis.matched_path.success_message || labels.mission_updated,
+                    message: matchedPath.success_message || randomSuccess,
                     type: 'success'
                 })
 
@@ -412,7 +416,10 @@ export default function PlayPage() {
                     });
                 });
 
-                setFeedback({ message: labels.tactical_error, type: 'error' })
+                // Randomized Error Message
+                const errorOptions = labels.tactical_error.split('|');
+                const randomError = errorOptions[Math.floor(Math.random() * errorOptions.length)];
+                setFeedback({ message: randomError, type: 'error' })
             }
         } catch (error) {
             console.error('Error analyzing decision:', error)
@@ -649,8 +656,32 @@ export default function PlayPage() {
                                             >
                                                 ⌨️
                                             </button>
+                                            <button
+                                                className={styles.hintToggle}
+                                                onClick={() => setShowHint(!showHint)}
+                                                type="button"
+                                                title={labels.tactical_hint_btn}
+                                            >
+                                                💡
+                                            </button>
                                             <div className={styles.inputDecor}></div>
                                         </div>
+
+                                        <AnimatePresence>
+                                            {showHint && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className={styles.hintSection}
+                                                >
+                                                    <span className={styles.hintLabel}>{labels.tactical_hint_label}</span>
+                                                    <span className={styles.hintText}>
+                                                        {t(currentScene, 'valid_actions_hint') || 'Strategic intuition suggests aligning with the mission objective.'}
+                                                    </span>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
 
                                         {feedback && (
                                             <div className={`${styles.feedback} ${styles[feedback.type]}`}>
