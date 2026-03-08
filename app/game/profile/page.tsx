@@ -73,6 +73,12 @@ export default function ProfilePage() {
     }, [])
 
     const handleSignOut = async () => {
+        // Clear all story progress from localStorage to prevent data leakage between users
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('story_progress_') || key.startsWith('story_score_') || key === 'selected_story_id') {
+                localStorage.removeItem(key)
+            }
+        })
         await supabase.auth.signOut()
         router.push('/login')
     }

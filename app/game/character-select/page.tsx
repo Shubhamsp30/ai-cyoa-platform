@@ -46,7 +46,11 @@ export default function CharacterSelectPage() {
                 return
             }
 
-            // Start navigation immediately after triggering update for snappy response
+            // 1. Clear any stale local progress for this story to ensure a fresh start
+            localStorage.removeItem(`story_progress_${story.id}`)
+            localStorage.removeItem(`story_score_${story.id}`)
+
+            // 2. Start navigation immediately after triggering update for snappy response
             const updatePromise = supabase
                 .from('profiles')
                 .update({

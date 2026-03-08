@@ -1,0 +1,67 @@
+.main {
+    height: 100vh;
+    width: 100%;
+    background: radial-gradient(circle at 50% 50%, #0a0a14 0%, #050508 100%);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hudGrid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.08;
+    background-image: linear-gradient(rgba(64, 224, 208, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(64, 224, 208, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index: 1;
+}
+
+.emberContainer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.ember {
+    position: absolute;
+    bottom: -10px;
+    width: 3px;
+    height: 3px;
+    background: #ff6b35;
+    border-radius: 50%;
+    filter: blur(1px);
+    box-shadow: 0 0 10px #ff6b35, 0 0 20px #ff3d00;
+    animation: drift 15s infinite linear;
+}
+
+@keyframes drift {
+    0% {
+        transform: translateY(0) translateX(0) scale(1);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 0.6;
+    }
+
+    50% {
+        transform: translateY(-50vh) translateX(50px) scale(1.1);
+    }
+
+    100% {
+        transform: translateY(-110vh) translateX(-20px) scale(0.5);
+        opacity: 0;
+    }
+}
+
+.content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}

@@ -33,6 +33,9 @@ const UI_LABELS: Record<Language, Record<string, string>> = {
         'epic_scenes': 'Epic Scenes',
         'begin_story': 'BEGIN STORY',
         'no_adventures': 'No adventures available yet. Check back soon!',
+        'tactical_error': '❌ Wrong Move! Try something else! 🛡️⚔️🚩',
+        'mission_updated': '✅ Great Job! Moving forward! ⚔️🏰🔥',
+        'command_failed': '⚠️ System Error! Please try again. 🤖',
     },
     'hi': {
         'start': 'साहसिक कार्य शुरू करें',
@@ -53,6 +56,9 @@ const UI_LABELS: Record<Language, Record<string, string>> = {
         'epic_scenes': 'महाकाव्य दृश्य',
         'begin_story': 'कहानी शुरू करें',
         'no_adventures': 'कोई रोमांच उपलब्ध नहीं है। जल्द ही वापस देखें!',
+        'tactical_error': '❌ गलत जवाब! फिर से कोशिश करें! 🛡️⚔️🚩',
+        'mission_updated': '✅ बहुत बढ़िया! आगे बढ़ें! ⚔️🏰🔥',
+        'command_failed': '⚠️ सिस्टम त्रुटि! फिर से प्रयास करें। 🤖',
     },
     'mr': {
         'start': 'साहस सुरू करा',
@@ -72,7 +78,10 @@ const UI_LABELS: Record<Language, Record<string, string>> = {
         'select_story_subtitle': 'तुमचा पौराणिक प्रवास सुरू करण्यासाठी एक कथा निवडा',
         'epic_scenes': 'महाकाव्य दृश्ये',
         'begin_story': 'कथा सुरू करा',
-        'no_adventures': 'अद्याप कोणतीही कथा उपलब्ध नाही. लवकरच परत तपासा!',
+        'no_adventures': 'अद्याप कोणतीही कथा उपलब्ध नाही। लवकरच परत तपासा!',
+        'tactical_error': '❌ चुकीचा पर्याय! पुन्हा प्रयत्न करा! 🛡️⚔️🚩',
+        'mission_updated': '✅ उत्तम! पुढे चला! ⚔️🏰🔥',
+        'command_failed': '⚠️ सिस्टम त्रुटी! पुन्हा प्रयत्न करा. 🤖',
     },
     'hi-en': { // Hinglish
         'start': 'Adventure Shuru Karein',
@@ -93,6 +102,9 @@ const UI_LABELS: Record<Language, Record<string, string>> = {
         'epic_scenes': 'Epic Scenes',
         'begin_story': 'STORY SHURU KAREIN',
         'no_adventures': 'Koi adventure abhi available nahi hai. Jaldi wapas aayen!',
+        'tactical_error': '❌ Galat jawab! Phir se try karein! 🛡️⚔️🚩',
+        'mission_updated': '✅ Bahut badhiya! Aage badhein! ⚔️🏰🔥',
+        'command_failed': '⚠️ System Error! Phir se try karein. 🤖',
     },
     'mr-en': { // Marathlish
         'start': 'Adventure Suru Kara',
@@ -113,7 +125,10 @@ const UI_LABELS: Record<Language, Record<string, string>> = {
         'epic_scenes': 'Epic Scenes',
         'begin_story': 'STORY SURU KARA',
         'no_adventures': 'Ajun konta adventure available nahi. Lavkarach parat check kara!',
-    }
+        'tactical_error': '❌ Chukicha paryay! Punha prayatna kara! 🛡️⚔️🚩',
+        'mission_updated': '✅ Uttam! Pudhe chala! ⚔️🏰🔥',
+        'command_failed': '⚠️ System Error! Punha prayatna kara. 🤖',
+    },
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {

@@ -9,6 +9,7 @@ export default function AuthForm() {
     const router = useRouter()
     const supabase = createClient()
     const [isLogin, setIsLogin] = useState(true)
+    const [isForgot, setIsForgot] = useState(false)
     const [email, setEmail] = useState('')
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
@@ -16,6 +17,26 @@ export default function AuthForm() {
     const [error, setError] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
     const [showPassword, setShowPassword] = useState(false)
+
+    async function handleForgotPassword(e: React.FormEvent) {
+        e.preventDefault()
+        setLoading(true)
+        setError(null)
+        setSuccessMessage(null)
+
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/auth/callback?next=/login/reset-password`,
+            })
+            if (error) throw error
+            setSuccessMessage('Reset link sent! Please check your email inbox to proceed.')
+        } catch (error: any) {
+            console.error('handleForgotPassword error:', error)
+            setError(error.message)
+        } finally {
+            setLoading(false)
+        }
+    }
 
     async function handleAuth(e: React.FormEvent) {
         e.preventDefault()
@@ -94,11 +115,11 @@ export default function AuthForm() {
             <div className={styles.scanline}></div>
             <div className={styles.header}>
                 <h2 className={styles.title}>
-                    {isLogin ? 'Welcome Warrior' : 'Join the Resistance'}
+                    {isForgot ? 'RECOVER INTEL' : (isLogin ? 'Welcome Warrior' : 'Join the Resistance')}
                 </h2>
             </div>
 
-            <form onSubmit={handleAuth} className={styles.form}>
+            <form onSubmit={isForgot ? handleForgotPassword : handleAuth} className={styles.form}>
                 {!isLogin && (
                     <div className={styles.inputGroup}>
                         <label>Username</label>
@@ -123,44 +144,68 @@ export default function AuthForm() {
                     />
                 </div>
 
-                <div className={styles.inputGroup}>
-                    <label>Password {!isLogin && '(Min 6 chars)'}</label>
-                    <div className={styles.passwordWrapper}>
-                        <input
-                            type={showPassword ? "text" : "password"}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                            required
-                        />
-                        <button
-                            type="button"
-                            className={styles.eyeBtn}
-                            onClick={() => setShowPassword(!showPassword)}
-                        >
-                            {showPassword ? '🙈' : '👁️'}
-                        </button>
+                {!isForgot && (
+                    <div className={styles.inputGroup}>
+                        <div className={styles.labelRow}>
+                            <label>Password {!isLogin && '(Min 6 chars)'}</label>
+                            {isLogin && (
+                                <button
+                                    type="button"
+                                    className={styles.forgotBtn}
+                                    onClick={() => setIsForgot(true)}
+                                >
+                                    FORGOT PASSWORD?
+                                </button>
+                            )}
+                        </div>
+                        <div className={styles.passwordWrapper}>
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                required={!isForgot}
+                            />
+                            <button
+                                type="button"
+                                className={styles.eyeBtn}
+                                onClick={() => setShowPassword(!showPassword)}
+                            >
+                                {showPassword ? '🙈' : '👁️'}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {error && <div className={styles.error}>{error}</div>}
                 {successMessage && <div className={styles.success}>{successMessage}</div>}
 
                 <button type="submit" className={styles.submitBtn} disabled={loading}>
-                    <span className={styles.btnText}>{loading ? 'PROCESSING...' : (isLogin ? 'SIGN IN' : 'SIGN UP')}</span>
+                    <span className={styles.btnText}>
+                        {loading ? 'PROCESSING...' : (isForgot ? 'SEND RESET LINK' : (isLogin ? 'SIGN IN' : 'SIGN UP'))}
+                    </span>
                 </button>
             </form>
 
             <div className={styles.footer}>
-                <button
-                    onClick={() => setIsLogin(!isLogin)}
-                    className={styles.toggleBtn}
-                >
-                    {isLogin ? "Don't have an account?" : "Already have an account?"}
-                    <span className={styles.toggleHighlight}>
-                        {isLogin ? 'Sign Up' : 'Sign In'}
-                    </span>
-                </button>
+                {isForgot ? (
+                    <button
+                        onClick={() => setIsForgot(false)}
+                        className={styles.toggleBtn}
+                    >
+                        BACK TO <span className={styles.toggleHighlight}>SIGN IN</span>
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => setIsLogin(!isLogin)}
+                        className={styles.toggleBtn}
+                    >
+                        {isLogin ? "Don't have an account?" : "Already have an account?"}
+                        <span className={styles.toggleHighlight}>
+                            {isLogin ? 'Sign Up' : 'Sign In'}
+                        </span>
+                    </button>
+                )}
             </div>
         </div>
     )

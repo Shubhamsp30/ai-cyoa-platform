@@ -116,6 +116,12 @@
     gap: 0.75rem;
 }
 
+.labelRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .inputGroup label {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.75rem;
@@ -123,6 +129,25 @@
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 2px;
+}
+
+.forgotBtn {
+    background: none;
+    border: none;
+    color: #40e0d0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+.forgotBtn:hover {
+    opacity: 1;
+    text-shadow: 0 0 10px rgba(64, 224, 208, 0.4);
 }
 
 .inputGroup input {

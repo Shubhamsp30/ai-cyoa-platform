@@ -172,11 +172,12 @@ export default function PlayPage() {
         }
         setStory(storyData)
 
-        // Initial check: Try to fetch cloud-synced state if user is logged in
-        let savedSceneId = localStorage.getItem(`story_progress_${storyId}`)
-        let savedScore = localStorage.getItem(`story_score_${storyId}`)
+        // Reset variables for fresh mission initialization
+        let sceneId = storyData.starting_scene_id
+        let initialScore = 0
 
         const { data: { session } } = await supabase.auth.getSession()
+
         if (session?.user) {
             const { data: profile } = await supabase
                 .from('profiles')
@@ -184,17 +185,22 @@ export default function PlayPage() {
                 .eq('id', session.user.id)
                 .single()
 
-            // If the user's cloud profile matches the selected story, prioritize it
-            if (profile && profile.current_story_id === storyId) {
+            // If the user's cloud profile matches the selected story, restore it
+            if (profile && profile.current_story_id === storyId && profile.current_scene_id) {
                 console.log('AUTO-SAVE: Restoring cloud-synced mission state...')
-                savedSceneId = profile.current_scene_id || savedSceneId
-                savedScore = profile.current_score?.toString() || savedScore
+                sceneId = profile.current_scene_id
+                initialScore = profile.current_score || 0
             }
+            // IMPORTANT: If logged in, we do NOT fallback to localStorage to avoid leakage from other users
+        } else {
+            // Unauthenticated user: use local storage (legacy compatibility)
+            const savedSceneId = localStorage.getItem(`story_progress_${storyId}`)
+            const savedScore = localStorage.getItem(`story_score_${storyId}`)
+            if (savedSceneId) sceneId = savedSceneId
+            if (savedScore) initialScore = parseInt(savedScore)
         }
 
-        if (savedScore) setScore(parseInt(savedScore))
-
-        const sceneId = savedSceneId || storyData.starting_scene_id
+        setScore(initialScore)
         const sceneData = await getSceneById(sceneId)
         if (sceneData) setCurrentScene(sceneData)
 
@@ -346,7 +352,7 @@ export default function PlayPage() {
                 });
 
                 setFeedback({
-                    message: analysis.matched_path.success_message || analysis.message,
+                    message: analysis.matched_path.success_message || labels.mission_updated,
                     type: 'success'
                 })
 
@@ -406,11 +412,11 @@ export default function PlayPage() {
                     });
                 });
 
-                setFeedback({ message: analysis.message || "TACTICAL ERROR: Choice invalid.", type: 'error' })
+                setFeedback({ message: labels.tactical_error, type: 'error' })
             }
         } catch (error) {
             console.error('Error analyzing decision:', error)
-            setFeedback({ message: 'SYSTEM ERROR: Intel processing failed.', type: 'error' })
+            setFeedback({ message: labels.command_failed, type: 'error' })
         } finally {
             setAnalyzing(false)
         }
@@ -648,7 +654,12 @@ export default function PlayPage() {
 
                                         {feedback && (
                                             <div className={`${styles.feedback} ${styles[feedback.type]}`}>
-                                                {feedback.message.toUpperCase()}
+                                                <span className={styles.feedbackIcon}>
+                                                    {feedback.type === 'success' ? '✓' : '⚠'}
+                                                </span>
+                                                <span className={styles.feedbackText}>
+                                                    {feedback.message.toUpperCase()}
+                                                </span>
                                             </div>
                                         )}
 
