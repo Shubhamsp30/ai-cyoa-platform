@@ -56,21 +56,37 @@ Output valid JSON:
 
     try {
         let analysis: any = {}
-        const openai = new OpenAI({ apiKey })
+        const isGoogleKey = apiKey.startsWith('AIzaSy')
 
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o',
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are a precise JSON classifier. Match player intent to the most logical path index. Be accurate, not just generous.',
-                },
-                { role: 'user', content: systemPrompt },
-            ],
-            temperature: 0.1, // Lower temperature for more consistent results
-            response_format: { type: 'json_object' },
-        })
-        analysis = JSON.parse(response.choices[0].message.content || '{}')
+        if (isGoogleKey) {
+            console.log('[DECISION ANALYZER] Google API Key detected. Using Gemini.')
+            const genAI = new GoogleGenerativeAI(apiKey)
+            const model = genAI.getGenerativeModel({
+                model: 'gemini-1.5-flash',
+                generationConfig: { responseMimeType: 'application/json' }
+            })
+
+            const prompt = `System: You are a precise JSON classifier. Match player intent to the most logical path index. Be accurate, not just generous.\n\nUser: ${systemPrompt}`
+            const response = await model.generateContent(prompt)
+            const text = response.response.text()
+            analysis = JSON.parse(text || '{}')
+        } else {
+            console.log('[DECISION ANALYZER] OpenAI API Key detected. Using GPT-4o.')
+            const openai = new OpenAI({ apiKey })
+            const response = await openai.chat.completions.create({
+                model: 'gpt-4o',
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are a precise JSON classifier. Match player intent to the most logical path index. Be accurate, not just generous.',
+                    },
+                    { role: 'user', content: systemPrompt },
+                ],
+                temperature: 0.1,
+                response_format: { type: 'json_object' },
+            })
+            analysis = JSON.parse(response.choices[0].message.content || '{}')
+        }
 
         // Match the path with extra safety for index types
         const rawIndex = analysis.matched_path_index ?? analysis.matched_index

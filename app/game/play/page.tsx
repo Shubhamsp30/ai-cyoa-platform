@@ -21,10 +21,16 @@ export default function PlayPage() {
     const supabase = createClient()
     const [showKeyboard, setShowKeyboard] = useState(false)
 
-    // Debug Toggle
+    // Tactical Controls
     const toggleKeyboard = () => {
-        console.log("TACTICAL: Keyboard Toggle Requested. Current State:", !showKeyboard);
+        console.log("TACTICAL_KEYBOARD: Toggling. Current:", !showKeyboard);
         setShowKeyboard(prev => !prev);
+    }
+
+    const toggleHint = () => {
+        console.log("TACTICAL_HINT: Toggling. Current:", !showHint);
+        // alert("TACTICAL_INTEL: Hint Request Received!"); // Temporary diagnostic
+        setShowHint(prev => !prev);
     }
     const [userId, setUserId] = useState<string | null>(null)
     const [story, setStory] = useState<Story | null>(null)
@@ -144,6 +150,7 @@ export default function PlayPage() {
         if (currentScene) {
             soundManager.stopSpeaking() // STOP PREVIOUS SCENE SPEECH
             setIsSpeaking(false)
+            setShowHint(false) // RESET HINT FOR NEW SCENE
             soundManager.playTone('scene_transition')
             if (story && currentScene.id === story.starting_scene_id) {
                 setScore(0)
@@ -356,7 +363,7 @@ export default function PlayPage() {
                 const randomSuccess = successOptions[Math.floor(Math.random() * successOptions.length)];
 
                 setFeedback({
-                    message: matchedPath.success_message || randomSuccess,
+                    message: analysis.matched_path.success_message || randomSuccess,
                     type: 'success'
                 })
 
@@ -639,15 +646,6 @@ export default function PlayPage() {
                                     {/* Decision Console */}
                                     <div className={styles.inputSection}>
                                         <div className={`${styles.commandInputWrapper} ${animationClass}`}>
-                                            <input
-                                                type="text"
-                                                value={userInput}
-                                                onChange={(e) => setUserInput(e.target.value)}
-                                                placeholder="ENTER COMMAND..."
-                                                className={styles.decisionInput}
-                                                onKeyPress={(e) => e.key === 'Enter' && handleDecision()}
-                                                disabled={analyzing}
-                                            />
                                             <button
                                                 className={styles.keyboardToggle}
                                                 onClick={toggleKeyboard}
@@ -658,12 +656,21 @@ export default function PlayPage() {
                                             </button>
                                             <button
                                                 className={styles.hintToggle}
-                                                onClick={() => setShowHint(!showHint)}
+                                                onClick={toggleHint}
                                                 type="button"
                                                 title={labels.tactical_hint_btn}
                                             >
                                                 💡
                                             </button>
+                                            <input
+                                                type="text"
+                                                value={userInput}
+                                                onChange={(e) => setUserInput(e.target.value)}
+                                                placeholder="ENTER COMMAND..."
+                                                className={styles.decisionInput}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleDecision()}
+                                                disabled={analyzing}
+                                            />
                                             <div className={styles.inputDecor}></div>
                                         </div>
 

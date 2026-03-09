@@ -661,12 +661,13 @@
     width: 100%;
     display: flex;
     align-items: center;
+    gap: 8px;
+    /* PHYSICAL GAP BETWEEN BUTTONS AND INPUT */
     border: 1px solid rgba(64, 224, 208, 0.3);
     background: rgba(0, 0, 0, 0.4);
-    padding: 2px;
+    padding: 8px 12px;
     transition: all 0.3s ease;
-    transform-style: preserve-3d;
-    /* CRITICAL FOR POP-OUT BUTTON */
+    z-index: 100;
 }
 
 .commandInputWrapper:focus-within {
@@ -675,26 +676,28 @@
 }
 
 .keyboardToggle {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%) translateZ(100px);
-    /* POP OUT OF 3D PLANE */
-    transform-style: preserve-3d;
+    position: relative;
+    /* RELATIVE INSTEAD OF ABSOLUTE */
     background: rgba(64, 224, 208, 0.2);
-    border: 2px solid rgba(64, 224, 208, 0.5);
+    border: 2px solid rgba(64, 224, 208, 0.6);
     color: #40e0d0;
     width: 44px;
     height: 44px;
+    flex-shrink: 0;
     border-radius: 8px;
     font-size: 1.2rem;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 9999;
+    transition: all 0.2s;
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
     pointer-events: auto !important;
+}
+
+.keyboardToggle:active {
+    transform: scale(0.9);
+    background: rgba(64, 224, 208, 0.4);
 }
 
 .keyboardToggle:hover {
@@ -704,25 +707,29 @@
 }
 
 .hintToggle {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(255, 215, 0, 0.05);
-    border: 1px solid rgba(255, 215, 0, 0.2);
+    position: relative;
+    /* RELATIVE INSTEAD OF ABSOLUTE */
+    background: rgba(255, 215, 0, 0.1);
+    border: 2px solid rgba(255, 215, 0, 0.5);
     color: #ffd700;
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 20;
-    transition: all 0.3s ease;
-    font-size: 1rem;
-    margin-left: 40px;
-    /* Offset from Keyboard toggle */
+    z-index: 1000;
+    transition: all 0.2s;
+    font-size: 1.2rem;
+    pointer-events: auto !important;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.1);
+}
+
+.hintToggle:active {
+    transform: scale(0.9);
+    background: rgba(255, 215, 0, 0.4);
 }
 
 .hintToggle:hover {
@@ -735,13 +742,10 @@
     flex: 1;
     background: transparent;
     border: none;
-    padding: 1.5rem;
-    padding-left: 95px;
-    /* REVISED CLEARANCE FOR TOGGLES */
-    /* CLEARANCE FOR 3D TOGGLE ON LEFT */
+    padding: 0.75rem 0.5rem;
     color: #fff;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 1rem;
+    font-size: 1.1rem;
     outline: none;
     position: relative;
     z-index: 10;

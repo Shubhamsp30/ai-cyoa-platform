@@ -31,6 +31,7 @@ export interface Scene {
     valid_paths: ValidPath[]
     is_ending: boolean
     created_at: string
+    valid_actions_hint?: string
     translations?: Record<string, any> // jsonb default {}
 }
 
